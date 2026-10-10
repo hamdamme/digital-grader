@@ -35,7 +35,7 @@ ZIP validation happens before storage: maximum archive size 50 MiB; 2,000 entrie
 
 Uploads use temporary files, then stream to a private MinIO object under a server-generated UUID key. Bucket creation is lazy and idempotent on first upload. No public bucket policy or presigned PUT upload endpoint is added; direct client uploads would bypass validation and need a separate staging/finalization design. Git URL ingestion remains deferred; this milestone supports ZIP multipart requests only. Temporary file cleanup is attempted after processing; cleanup failures are logged without changing an already-accepted response.
 
-The database transaction inserts both the submission and its dispatch row (Flyway V3 `submission_outbox`). A scheduled dispatcher polls every two seconds, publishes a persistent `{submissionId}` message to durable queue `gradely.submissions`, and marks dispatch complete only after a broker confirm without a return. Failed publishes remain durable and retry after ten seconds. `dispatchStatus` is PENDING or PUBLISHED; 202 means accepted into durable application work, not that a grading result exists.
+The database transaction inserts both the submission and its dispatch row (Flyway V3 `submission_outbox`). A scheduled dispatcher polls every two seconds, publishes a persistent `{submissionId}` message to durable queue `digital-grader.submissions`, and marks dispatch complete only after a broker confirm without a return. Failed publishes remain durable and retry after ten seconds. `dispatchStatus` is PENDING or PUBLISHED; 202 means accepted into durable application work, not that a grading result exists.
 
 Delivery is at least once: a crash after RabbitMQ acknowledges but before the database commit may publish twice. The worker must claim with the conditional QUEUED → RUNNING transition and handle recovery/idempotency. A test verifies only one claim succeeds. Terminal transitions are RUNNING → GRADED/FAILED/TIMEOUT and cannot be reversed through this service. There is no public status-write endpoint and no worker yet, so real uploads remain QUEUED.
 
@@ -53,15 +53,15 @@ docker compose up -d --build --wait --wait-timeout 180
 
 Stop an older backend in its own terminal before starting the new build on port 8080. Restart applies migrations; a previously running process is not automatically updated. Use the optional first-admin setup in SESSION_3.md, then provision an instructor and students through the API. No accounts or real submissions were seeded during development.
 
-Integration tests require local image `gradely-minio:2025-10-15` (Compose builds it). To build only that prerequisite:
+Integration tests require local image `digital-grader-minio:2025-10-15` (Compose builds it). To build only that prerequisite:
 
 ```sh
-docker build -t gradely-minio:2025-10-15 infra/minio
+docker build -t digital-grader-minio:2025-10-15 infra/minio
 ```
 
 Tests start disposable PostgreSQL, MinIO and RabbitMQ containers with isolated fixture credentials. The backend CI workflow now builds that pinned MinIO image before running tests. This source build adds CI time and requires upstream download access; remote CI has not yet been run for this branch.
 
-Storage uses MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY and MINIO_BUCKET; queue connectivity uses RABBIT_HOST/PORT/USERNAME/PASSWORD from the existing private environment. Broker confirms and returns are enabled. Multipart files spill to disk, with 50 MiB file / 51 MiB whole-request limits. For tests or diagnostics, `--gradely.dispatch.enabled=false` disables scheduled publishing without deleting pending work.
+Storage uses MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY and MINIO_BUCKET; queue connectivity uses RABBIT_HOST/PORT/USERNAME/PASSWORD from the existing private environment. Broker confirms and returns are enabled. Multipart files spill to disk, with 50 MiB file / 51 MiB whole-request limits. For tests or diagnostics, `--digital-grader.dispatch.enabled=false` disables scheduled publishing without deleting pending work.
 
 Verification: 62 tests, no skips; real HTTP upload → exact MinIO download bytes → confirmed persistent RabbitMQ message; unauthorized reads/uploads; invalid archive paths/symlinks/bombs; deadline/attempt rules; concurrent last-attempt requests; failed storage and DB rollback; object cleanup; failed dispatch retry; status transitions; and existing auth/database tests. Failure injection uses spies at service boundaries; the successful storage/broker path uses real containers.
 

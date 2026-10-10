@@ -10,7 +10,7 @@ Infrastructure, startup configuration, database migrations, health endpoint and 
 
 Requirements: Docker with Compose v2 and BuildKit, Java 17, Maven 3.9, Python 3 (environment generation only).
 
-From the Gradely repository root:
+From the Digital Grader repository root:
 
 ```sh
 python3 scripts/init-dev-env.py
@@ -34,13 +34,13 @@ Health returns `{"status":"UP"}` only if PostgreSQL responds. Database failure p
 | Service | Local endpoint | Purpose |
 |---|---|---|
 | Backend | http://127.0.0.1:8080/api/v1/health | Application/database health |
-| PostgreSQL | 127.0.0.1:15432 | Dedicated Gradely database |
+| PostgreSQL | 127.0.0.1:15432 | Dedicated Digital Grader database |
 | RabbitMQ AMQP | 127.0.0.1:5673 | Future grading queue |
 | RabbitMQ console | http://127.0.0.1:15673 | Queue administration |
 | MinIO S3 | http://127.0.0.1:19000 | Future submission storage |
 | MinIO console | http://127.0.0.1:19001 | Object administration |
 
-All published ports bind only to loopback. Console credentials come from `.env`: RABBIT_USERNAME/RABBIT_PASSWORD and MINIO_ACCESS_KEY/MINIO_SECRET_KEY. No credentials are printed by setup. Infrastructure data persists in gradely-prefixed named Docker volumes. Existing unrelated containers and their data are not modified.
+All published ports bind only to loopback. Console credentials come from `.env`: RABBIT_USERNAME/RABBIT_PASSWORD and MINIO_ACCESS_KEY/MINIO_SECRET_KEY. No credentials are printed by setup. Infrastructure data persists in digital-grader-prefixed named Docker volumes. Existing unrelated containers and their data are not modified.
 
 ## Configuration
 
@@ -69,7 +69,7 @@ Tests start a disposable PostgreSQL 16 container and do not touch the Compose da
 
 The original prebuilt community-image references failed during this session. Upstream now documents source-only distribution, and the repository is archived. `infra/minio/Dockerfile` builds official release `RELEASE.2025-10-15T17-29-55Z`, pinned to commit `9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a` and a checked archive SHA-256. The first build downloads Go dependencies and can take several minutes; subsequent builds reuse Docker cache. The runtime runs as non-root UID 10001.
 
-This is a local compatibility setup, not a production storage recommendation. Select a maintained S3-compatible storage deployment before production. MinIO retains its AGPLv3 license; the image includes its upstream LICENSE and source metadata. Gradely's MIT license does not replace third-party licenses.
+This is a local compatibility setup, not a production storage recommendation. Select a maintained S3-compatible storage deployment before production. MinIO retains its AGPLv3 license; the image includes its upstream LICENSE and source metadata. Digital Grader's MIT license does not replace third-party licenses.
 
 Sources: https://github.com/minio/minio#source-only-distribution and the source pinned in the Dockerfile.
 
@@ -79,7 +79,7 @@ If public image pulls report a macOS Keychain error, use your normal authenticat
 
 ## Stop safely
 
-Stop the backend with Ctrl+C in its terminal. `docker compose stop` stops Gradely services while preserving data. `docker compose start --wait` restarts existing containers; use `up -d --build --wait` after infrastructure changes. Do not use `down -v` unless intentionally deleting all local Gradely data.
+Stop the backend with Ctrl+C in its terminal. `docker compose stop` stops Digital Grader services while preserving data. `docker compose start --wait` restarts existing containers; use `up -d --build --wait` after infrastructure changes. Do not use `down -v` unless intentionally deleting all local Digital Grader data.
 
 ## Next checkpoint
 

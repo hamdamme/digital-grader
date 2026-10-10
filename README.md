@@ -1,4 +1,4 @@
-# Gradely
+# Digital Grader
 
 Automated grading and security feedback for Java test-automation students.
 
@@ -67,6 +67,8 @@ docs/PLAN.md       Working schedule
 docs/HANDOFF.md    Verified status and next session
 ```
 
+For existing checkouts, see [rename and local-data compatibility notes](docs/RENAMING.md).
+
 ## Development workflow
 
 Use short-lived feature branches and commits that represent coherent changes. Record meaningful decisions, run relevant checks, and keep the lockfile committed. Do not commit credentials, dependency folders, build output, or student submissions. CI is configured for frontend changes; a successful local run does not imply a GitHub Actions run has occurred.
@@ -75,9 +77,9 @@ The prototype keeps React 18. Patched Vite, Router, Vitest, and compatible TypeS
 
 ## GitHub
 
-Public repository: https://github.com/hamdamme/gradely. Session 1 is published on main and its frontend workflow passed. Session 2 was merged through PR #1 and its backend CI passed. Sessions 3–5 were merged through [PR #3](https://github.com/hamdamme/gradely/pull/3), with successful backend CI. Session 6 is local work on `session-6/grading-worker`; its remote CI remains pending.
+Public repository: https://github.com/hamdamme/digital-grader. Session 1 is published on main and its frontend workflow passed. Session 2 was merged through PR #1 and its backend CI passed. Sessions 3–5 were merged through [PR #3](https://github.com/hamdamme/digital-grader/pull/3), with successful backend CI. Session 6 is local work on `session-6/grading-worker`; its remote CI remains pending.
 
-[Frontend Actions run verified at session start](https://github.com/hamdamme/gradely/actions/runs/37161397951).
+[Frontend Actions run verified at session start](https://github.com/hamdamme/digital-grader/actions/runs/37161397951).
 
 ## License
 

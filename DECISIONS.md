@@ -7,7 +7,7 @@ The owner requested a visual prototype and a multi-day delivery pace. Today's im
 Keep the prototype in frontend/ with no credentials or services. Use in-memory sample data, clearly marked, and discard changes on reload. A chosen ZIP is validated by filename and size only; bytes are never read or uploaded.
 
 ## Repository
-Default to a public GitHub repository named gradely. Use the existing Git identity, Hamdam, and its configured GitHub no-reply email. GitHub authentication and Desktop filesystem permission are external setup prerequisites.
+Default to a public GitHub repository named digital-grader. Use the existing Git identity, Hamdam, and its configured GitHub no-reply email. GitHub authentication and Desktop filesystem permission are external setup prerequisites.
 
 ## Resolve before worker implementation
 - An offline Maven container needs dependencies preloaded or an explicitly controlled provisioning stage.
@@ -17,8 +17,8 @@ Default to a public GitHub repository named gradely. Use the existing Git identi
 - Self-registration is STUDENT-only despite the broader API example.
 - Security findings cannot satisfy T17 until the later security tasks are implemented; separate those assertions.
 
-## 2026-10-03: Gradely branding and public repository
-The owner chose Gradely as the project name and explicitly requested public GitHub visibility. The active checkout is Desktop/gradely. Desktop/grader is retained as the original checkpoint because this environment cannot rename its parent directory. Preserve the original build specification verbatim.
+## 2026-10-03: Digital Grader branding and public repository
+The owner chose Digital Grader as the project name and explicitly requested public GitHub visibility. The active checkout is Desktop/digital-grader. Desktop/grader is retained as the original checkpoint because this environment cannot rename its parent directory. Preserve the original build specification verbatim.
 
 ## 2026-10-03: light developer workspace
 The owner rejected the green card-based design as too similar to their personal website and selected a light workspace. Replace it with charcoal navigation, blue actions, assignment rows and a desktop review panel. Keep existing prototype behavior and sample-data disclosures.
@@ -34,9 +34,9 @@ Preview uses port 5176 because the earlier Python service still owns 5174 and co
 The owner requested darker left navigation and a simpler professional appearance. Teacher pages use the earlier charcoal/blue palette, sans-serif headings, white content panels and direct labels. Removed the decorative teaching panel. Teacher cohort overview is /studio; submission review is /review/:id. Student pages remain available. All submissions, code and findings are sample data; review notes are local drafts only.
 
 ## 2026-10-04: Session 2 backend foundation
-Work continues in Desktop/PROJECTS/gradely after the owner moved the checkout. Preserve the unrelated untracked gradely_mindtek folder; it is excluded from this session's commits. Use session-2/backend-foundation for reviewable changes.
+Work continues in Desktop/PROJECTS/digital-grader after the owner moved the checkout. Preserve the unrelated untracked gradely_mindtek folder; it is excluded from this session's commits. Use session-2/backend-foundation for reviewable changes.
 
-Use Java 17 with Maven 3.9 and Spring Boot 3.5.16, a newer patch line than the spec's unsupported 3.3 series. Spring's dependency management selects Flyway/PostgreSQL/Testcontainers versions rather than duplicating pins. Retain com.gradely as the application package. JDBC suffices for this foundation; JPA entities and application APIs are Session 3+.
+Use Java 17 with Maven 3.9 and Spring Boot 3.5.16, a newer patch line than the spec's unsupported 3.3 series. Spring's dependency management selects Flyway/PostgreSQL/Testcontainers versions rather than duplicating pins. Retain com.digitalgrader as the application package. JDBC suffices for this foundation; JPA entities and application APIs are Session 3+.
 
 Use dedicated loopback ports (PostgreSQL 15432, AMQP 5673, RabbitMQ UI 15673, MinIO 19000/19001), because another project already uses 5432. All credentials come from ignored .env, generated randomly instead of shipping usable defaults. JWT_SECRET validation is reserved for the forthcoming auth layer. No demo users are seeded before authentication exists.
 

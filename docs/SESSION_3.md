@@ -40,7 +40,7 @@ Passwords must contain at least 12 characters and fit within BCrypt's 72-byte UT
 
 ## Token behavior
 
-Access tokens are HS256 JWTs with Gradely issuer, user ID, role, access usage, issuance and expiration claims. The filter checks the database user on each authenticated request; deletion or a role change invalidates the old access token.
+Access tokens are HS256 JWTs with Digital Grader issuer, user ID, role, access usage, issuance and expiration claims. The filter checks the database user on each authenticated request; deletion or a role change invalidates the old access token.
 
 Refresh tokens are 32 random bytes encoded as base64url. Only SHA-256 hashes are stored. Refresh consumes the old row and inserts its replacement in one database transaction; concurrent reuse yields one successful request, and a failed replacement rolls back consumption. Expired tokens and replay are rejected. Expired database rows are not yet periodically purged.
 

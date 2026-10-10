@@ -1,9 +1,9 @@
-# Gradely handoff
+# Digital Grader handoff
 
 Current status is the Session 6 checkpoint below; older dated sections are historical.
 
 ## Delivered
-- Local repository at Desktop/gradely on main, with MIT license, ignore rules and EditorConfig.
+- Local repository at Desktop/digital-grader on main, with MIT license, ignore rules and EditorConfig.
 - Source build specification preserved alongside decisions and a four-day plan.
 - Student assignments, active/completed filtering, file selection and simulated submission states.
 - Demonstration results with test failure details, a security finding, sample guidance and progress view.
@@ -18,7 +18,7 @@ Current status is the Session 6 checkpoint below; older dated sections are histo
 - Production acceptance tests T01–T32 have not been run or satisfied.
 
 ## Remaining setup
-The owner successfully authenticated as hamdamme in Terminal. The agent command environment cannot use that authentication, and Terminal UI access is blocked. No remote repository or push has been confirmed. From the authenticated Terminal, run: `gh repo create gradely --public --source=/Users/nazar/Desktop/gradely --remote=origin --push`. The original Desktop/grader folder is retained as a backup; continue work in Desktop/gradely.
+The owner successfully authenticated as hamdamme in Terminal. The agent command environment cannot use that authentication, and Terminal UI access is blocked. No remote repository or push has been confirmed. From the authenticated Terminal, run: `gh repo create digital-grader --public --source=/Users/nazar/Desktop/digital-grader --remote=origin --push`. The original Desktop/grader folder is retained as a backup; continue work in Desktop/digital-grader.
 
 ## Stop point
 Stop implementation here for today. Next session begins with design feedback, the GitHub setup if still pending, and the React/TypeScript port. Instructor flows, login and backend features remain planned work. Do not create artificial revisions to fill the schedule.
@@ -41,7 +41,7 @@ Stop here. Next implementation checkpoint is the Spring Boot service and local i
 Added cohort overview and split source/results review. Refined the design after owner feedback: charcoal sidebar, blue controls, plain sans-serif type and simpler copy. Production preview: http://127.0.0.1:5175/#/studio and http://127.0.0.1:5175/#/review/demo-003. Existing student preview remains available via navigation. All 13 tests pass; build passes. Browser confirmed updated navigation labels and review styling. No backend or real grade changes are implemented. Notes are never sent to students.
 
 ## Session 2 — October 4, 2026
-Current checkout: /Users/nazar/Desktop/PROJECTS/gradely. Branch: session-2/backend-foundation. See SESSION_2.md for current setup instructions.
+Current checkout: /Users/nazar/Desktop/PROJECTS/digital-grader. Branch: session-2/backend-foundation. See SESSION_2.md for current setup instructions.
 
 Verified: frontend GitHub Actions succeeded before this session; PostgreSQL/RabbitMQ/MinIO all healthy; RabbitMQ and MinIO consoles return HTTP 200; RabbitMQ authenticated health returns ok; backend health returns HTTP 200/UP; protected routes return 401; startup without JWT_SECRET fails with the variable named; Flyway creates 11 application tables plus its history table; all 17 backend tests pass without skips. Initial MinIO source build succeeded. Production image/provider selection remains open because community MinIO is archived.
 
@@ -63,3 +63,7 @@ Delivered: standalone non-HTTP worker, mandatory runsc readiness gate, offline s
 Docker Desktop is running (29.0.1), but only runc/containerd runtimes are registered. No student submission was executed using them. The two real sandbox acceptance tests are still unrun; Session 6 is not complete. The owner has another computer running Linux and was asked to identify its distribution with cat /etc/os-release. Next: prepare that host with Docker and gVisor, build the image, run the sandbox profile, then verify an end-to-end real submission. Full commands and prototype limits are in SESSION_6.md.
 
 Preserved unrelated untracked gradely_mindtek/ and docs/.Rhistory. No real accounts or student submissions were created. Tests used disposable containers. Do not treat student-supplied reports as trusted grades; teacher-owned test execution remains a release requirement.
+
+## Digital Grader rename — October 10, 2026
+
+Renamed branding, Java packages, artifacts, images, configuration names and repository references. GitHub rename is verified; local origin targets hamdamme/digital-grader. See RENAMING.md for data compatibility and the pending owner-performed folder move. All 76 backend tests, 13 frontend tests, three extraction tests and the frontend build pass; the renamed sandbox image builds. Session 6 Ubuntu/gVisor verification is deferred at the owner's request. No rename commits have been pushed by the agent.

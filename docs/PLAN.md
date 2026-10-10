@@ -7,7 +7,7 @@ Updated October 10, 2026 (America/Chicago). Eight sessions are a working plan, n
 3. **Complete and merged:** typed repositories, registration/login/refresh/logout, admin provisioning, role/cohort access; 45 total backend tests passed at that checkpoint; delivered through merged PR #3.
 4. **Complete and merged:** teacher cohort creation/enrollment/read APIs, validated assignments and Swagger documentation.
 5. **Complete and merged:** ZIP validation, MinIO uploads/downloads, durable RabbitMQ dispatch, attempt/deadline checks and status lifecycle; 62 backend tests pass.
-6. **In progress:** isolated grading worker, reports, coverage and scoring implemented; actual gVisor acceptance on Linux remains pending.
+6. **In progress:** isolated grading worker, reports, coverage and scoring implemented; Ubuntu/gVisor acceptance is deferred at the owner’s request until the Ubuntu computer is ready.
 7. Security scans and AI guidance: findings, severity mapping, hints and caching.
 8. Integration/release preparation: dashboards, overrides, end-to-end tests, CI and reproducible setup.
 

@@ -31,7 +31,7 @@ Prerequisites: Docker with Compose, registered `runsc`, Java 17, Maven 3.9 and P
 From the repository root:
 
 ```sh
-docker build -f sandbox/Dockerfile.student -t gradely-student:session6 sandbox
+docker build -f sandbox/Dockerfile.student -t digital-grader-student:session6 sandbox
 ./scripts/check-sandbox.sh
 ./scripts/backend.sh -B -ntp -Psandbox test
 ```
@@ -46,9 +46,9 @@ After those pass, initialize the local services as described in Session 2, then 
 ./scripts/worker.sh
 ```
 
-Optional environment settings: `SANDBOX_IMAGE` (default `gradely-student:session6`), `SANDBOX_TIMEOUT_SECONDS` (default 600, range 5–600), `SANDBOX_MEMORY_MB` (default 1536, range 512–4096), `SANDBOX_CPU_LIMIT` (default 1, range 0.25–4). Java and Maven each use a bounded heap inside the sandbox.
+Optional environment settings: `SANDBOX_IMAGE` (default `digital-grader-student:session6`), `SANDBOX_TIMEOUT_SECONDS` (default 600, range 5–600), `SANDBOX_MEMORY_MB` (default 1536, range 512–4096), `SANDBOX_CPU_LIMIT` (default 1, range 0.25–4). Java and Maven each use a bounded heap inside the sandbox.
 
-Official runtime setup: https://gvisor.dev/docs/user_guide/quick_start/docker/. Distribution-specific installation remains pending identification of the owner's Linux distribution.
+Official runtime setup: https://gvisor.dev/docs/user_guide/quick_start/docker/. The owner confirmed Ubuntu; setup and acceptance are deferred until that computer is ready.
 
 ## Verification and stop point
 
@@ -61,5 +61,5 @@ This Mac's Docker engine has no `runsc`; the readiness script correctly rejects 
 - Only dependencies preloaded into the image are available offline. Assignments needing other dependencies require a reviewed image update.
 - Student-controlled Maven projects can falsify their own reports. This is a prototype grading pipeline, not trustworthy assessment evidence. A teacher-controlled test harness and report provenance are release requirements.
 - Full hostile-code containment, Selenium behavior under gVisor, real deadline/resource enforcement and end-to-end submission grading remain acceptance work on Linux.
-- Worker crashes may leave containers or unpublished report objects. Containers carry `gradely.sandbox=true` for operator inspection; crash cleanup/reconciliation requires further work. Claim recovery prevents stale database writes but does not prove container cleanup after host failure.
+- Worker crashes may leave containers or unpublished report objects. Containers carry `digital-grader.sandbox=true` for operator inspection; crash cleanup/reconciliation requires further work. Claim recovery prevents stale database writes but does not prove container cleanup after host failure.
 - Security scans, AI guidance and real frontend integration remain Sessions 7–8.

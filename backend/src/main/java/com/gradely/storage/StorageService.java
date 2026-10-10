@@ -40,6 +40,25 @@ public class StorageService {
             }
         } catch (Exception error) { throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Submission storage is unavailable"); }
     }
+    public void download(String key, Path destination) {
+        try (var input=client.getObject(GetObjectArgs.builder().bucket(bucket).object(key).build());
+                var output=Files.newOutputStream(destination)) {
+            byte[] buffer=new byte[8192]; int n; long total=0;
+            while ((n=input.read(buffer))!=-1) {
+                total+=n;
+                if (total>50L*1024*1024) throw new java.io.IOException("Stored archive exceeds limit");
+                output.write(buffer,0,n);
+            }
+        } catch (Exception error) { throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Submission download failed"); }
+    }
+    public void uploadReport(String key, String content) {
+        byte[] bytes=content.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (bytes.length>12_000_000) throw new IllegalArgumentException("Report exceeds limit");
+        try (var input=new java.io.ByteArrayInputStream(bytes)) {
+            ensureBucket();
+            client.putObject(PutObjectArgs.builder().bucket(bucket).object(key).stream(input,(long)bytes.length,-1L).contentType("text/plain; charset=utf-8").build());
+        } catch (Exception error) { throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Report upload failed"); }
+    }
     public void delete(String key) {
         try { client.removeObject(RemoveObjectArgs.builder().bucket(bucket).object(key).build()); }
         catch (Exception error) { throw new IllegalStateException("Object cleanup failed",error); }

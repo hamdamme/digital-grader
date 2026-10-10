@@ -54,6 +54,9 @@ class SubmissionIntegrationTest {
     @Autowired ObjectMapper json;
     @Autowired SubmissionService submissions;
     @Autowired OutboxDispatcher dispatcher;
+    @Autowired com.gradely.grading.GradingService grading;
+    @Autowired com.gradely.grading.GradingRepository jobs;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean com.gradely.grading.Sandbox sandbox;
     @Autowired org.springframework.amqp.rabbit.core.RabbitTemplate rabbit;
     @MockitoSpyBean StorageService storage;
     @MockitoSpyBean RabbitPublisher publisher;
@@ -158,6 +161,50 @@ class SubmissionIntegrationTest {
         assertThat(submissions.transition(id,SubmissionStatus.RUNNING,SubmissionStatus.TIMEOUT)).isTrue();
         assertThatThrownBy(() -> submissions.transition(id,SubmissionStatus.TIMEOUT,SubmissionStatus.RUNNING)).isInstanceOf(IllegalArgumentException.class);
         assertThat(get("/submissions/"+id,student).getBody()).contains("TIMEOUT");
+    }
+    @Test void workerPersistsResultsArtifactsAndSecurityHandoffOnce() throws Exception {
+        long id=accepted(upload(student,archive));
+        String first="<testsuite><testcase classname='C' name='pass'/><testcase classname='C' name='flaky'><failure message='fixture'/></testcase></testsuite>";
+        String retry="<testsuite><testcase classname='C' name='pass'/><testcase classname='C' name='flaky'/></testsuite>";
+        var coverage="<report><counter type='LINE' covered='3' missed='1'/></report>";
+        when(sandbox.run(any())).thenReturn(new com.gradely.grading.Sandbox.Result(1,"first log",List.of(first),coverage,Map.of()),new com.gradely.grading.Sandbox.Result(0,"retry log",List.of(retry),coverage,Map.of()));
+        grading.grade(id); grading.grade(id);
+        verify(sandbox,times(2)).run(any());
+        assertThat(jdbc.queryForObject("SELECT status FROM submissions WHERE id=?",String.class,id)).isEqualTo("GRADED");
+        assertThat(jdbc.queryForObject("SELECT tests_flaky FROM grading_results WHERE submission_id=?",Integer.class,id)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM security_outbox WHERE submission_id=?",Integer.class,id)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM grading_results WHERE submission_id=?",Integer.class,id)).isEqualTo(1);
+        var result=get("/submissions/"+id+"/result",student);
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        assertThat(result.getBody()).contains("FLAKY","rubricBreakdown");
+        assertThat(get("/submissions/"+id+"/result",other).getStatusCode().value()).isEqualTo(403);
+        assertThat(get("/submissions/"+id+"/result",teacher).getStatusCode().value()).isEqualTo(200);
+        String url=json.readTree(get("/submissions/"+id+"/build-log",teacher).getBody()).get("url").asText();
+        var log=java.net.http.HttpClient.newHttpClient().send(java.net.http.HttpRequest.newBuilder(java.net.URI.create(url)).GET().build(),java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertThat(log.body()).isEqualTo("first log");
+    }
+    @Test void workerTimeoutIsTerminalAndInfrastructureFailuresAreBounded() throws Exception {
+        long timeoutId=accepted(upload(student,archive));
+        when(sandbox.run(any())).thenReturn(new com.gradely.grading.Sandbox.Result(124,"timeout",List.of(),null,Map.of()));
+        grading.grade(timeoutId);
+        assertThat(jdbc.queryForObject("SELECT status FROM submissions WHERE id=?",String.class,timeoutId)).isEqualTo("TIMEOUT");
+        assertThat(get("/submissions/"+timeoutId+"/result",student).getStatusCode().value()).isEqualTo(409);
+        long failedId=accepted(upload(other,archive));
+        when(sandbox.run(any())).thenThrow(new IllegalStateException("fixture sandbox unavailable"));
+        for (int i=0;i<4;i++) grading.grade(failedId);
+        assertThat(jdbc.queryForObject("SELECT status FROM submissions WHERE id=?",String.class,failedId)).isEqualTo("FAILED");
+        assertThat(jdbc.queryForObject("SELECT grading_attempts FROM submissions WHERE id=?",Integer.class,failedId)).isEqualTo(3);
+    }
+    @Test void staleClaimsAreRecoveredAndCannotWriteLateResults() throws Exception {
+        long id=accepted(upload(student,archive));
+        var stale=jobs.claim(id).orElseThrow();
+        assertThat(jobs.claim(id)).isEmpty();
+        jdbc.update("UPDATE submissions SET grading_started_at=now()-interval '1 hour' WHERE id=?",id);
+        assertThat(jobs.recoverStale(1800)).isEqualTo(1);
+        var current=jobs.claim(id).orElseThrow();
+        var zero=new com.gradely.grading.Scoring.Score(java.math.BigDecimal.ZERO,java.math.BigDecimal.ZERO,java.math.BigDecimal.ZERO,java.math.BigDecimal.ZERO);
+        assertThat(jobs.finish(stale,List.of(),com.gradely.grading.ReportParser.jacoco(null),zero,false,"fixture-log")).isFalse();
+        assertThat(jobs.finish(current,List.of(),com.gradely.grading.ReportParser.jacoco(null),zero,false,"fixture-log")).isTrue();
     }
     private long accepted(ResponseEntity<String> response) throws Exception {
         assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(202);

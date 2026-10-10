@@ -19,9 +19,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Service
 public class SubmissionService {
     public record Accepted(long submissionId, SubmissionStatus status) {}
-    public record Submission(long id, long assignmentId, long studentId, int attemptNumber, SubmissionStatus status, Instant submittedAt, BigDecimal score, String dispatchStatus) {}
+    public record Submission(long id, long assignmentId, long studentId, int attemptNumber, SubmissionStatus status, Instant submittedAt, BigDecimal score, String dispatchStatus, String failureReason) {}
     private static final String SELECT="SELECT s.*, r.score, CASE WHEN o.published_at IS NULL THEN 'PENDING' ELSE 'PUBLISHED' END AS dispatch_status FROM submissions s LEFT JOIN grading_results r ON r.submission_id=s.id LEFT JOIN submission_outbox o ON o.submission_id=s.id ";
-    private static final RowMapper<Submission> MAPPER=(row,i) -> new Submission(row.getLong("id"),row.getLong("assignment_id"),row.getLong("student_id"),row.getInt("attempt_number"),SubmissionStatus.valueOf(row.getString("status")),row.getTimestamp("submitted_at").toInstant(),row.getBigDecimal("score"),row.getString("dispatch_status"));
+    private static final RowMapper<Submission> MAPPER=(row,i) -> new Submission(row.getLong("id"),row.getLong("assignment_id"),row.getLong("student_id"),row.getInt("attempt_number"),SubmissionStatus.valueOf(row.getString("status")),row.getTimestamp("submitted_at").toInstant(),row.getBigDecimal("score"),row.getString("dispatch_status"),row.getString("grading_error"));
     private final JdbcTemplate jdbc;
     private final AssignmentService assignments;
     private final StorageService storage;

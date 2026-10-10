@@ -34,7 +34,7 @@ export function Layout() {
       </a>
       <aside className="sidebar">
         <Link className="brand" to="/assignments">
-          <span className="brand-icon">G</span>Gradely
+          <span className="brand-icon">DG</span>Digital Grader
         </Link>
         <Link
           className="back"
@@ -89,7 +89,7 @@ export function Layout() {
           <Outlet />
         </main>
         <footer>
-          Gradely · Student workspace
+          Digital Grader · Student workspace
           <span>Local prototype · No code is executed</span>
         </footer>
       </div>

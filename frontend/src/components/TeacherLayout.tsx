@@ -21,7 +21,7 @@ export function TeacherLayout() {
       </a>
       <aside className="studio-sidebar">
         <Link className="studio-brand" to="/studio">
-          <span>G</span>Gradely
+          <span>DG</span>Digital Grader
         </Link>
         <p className="studio-nav-label">INSTRUCTOR WORKSPACE</p>
         <nav aria-label="Teacher navigation">
@@ -60,7 +60,7 @@ export function TeacherLayout() {
           <Outlet />
         </main>
         <footer className="studio-footer">
-          <span>Gradely · Independent project for Mindtek</span>
+          <span>Digital Grader · Independent project for Mindtek</span>
           <span>Demo only · Changes reset on reload</span>
         </footer>
       </div>

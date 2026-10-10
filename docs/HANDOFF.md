@@ -1,4 +1,6 @@
-# Day 1 handoff — October 3, 2026
+# Gradely handoff
+
+Current status is the Session 6 checkpoint below; older dated sections are historical.
 
 ## Delivered
 - Local repository at Desktop/gradely on main, with MIT license, ignore rules and EditorConfig.
@@ -50,3 +52,14 @@ Session 2 was merged through PR #1; branch and PR backend checks passed. Session
 
 ## Sessions 4 and 5 — October 9, 2026
 Branch session-4-5/teacher-submissions continues Session 3 history. Delivered teacher cohorts/enrollment, assignment/rubric APIs, Swagger UI, bounded ZIP validation, real MinIO storage, durable RabbitMQ outbox dispatch, submission reads and conditional status transitions. All 62 tests pass against disposable services. See SESSION_4_5.md for limits, setup and failure semantics. No grading worker or frontend API integration exists yet; submissions stay QUEUED. Local commits only; push/remote CI remain pending. Stop here before Session 6.
+
+
+## Session 6 — October 10, 2026 (in progress)
+
+PR #3 is confirmed merged at a940c4cfbe406f506a54ba918b6fc6327f0aa858. Sessions 1–5 are complete. Current branch: session-6/grading-worker, created from origin/main. Eight focused local commits cover the grading image, parsers/scoring, Docker execution, claim persistence, results, listener, acceptance tests and documentation. No Session 6 push or remote CI run has been verified.
+
+Delivered: standalone non-HTTP worker, mandatory runsc readiness gate, offline sandbox image, bounded reports, JUnit/JaCoCo/quality parsing, one flaky-test rerun, weighted scoring, private artifacts, authorized result/log endpoints, bounded retries, stale-claim token fencing and transactional security handoff. The image builds. All 76 standard backend tests pass without failures/skips, Maven verify succeeds, and three Python extraction checks pass. Frontend unchanged.
+
+Docker Desktop is running (29.0.1), but only runc/containerd runtimes are registered. No student submission was executed using them. The two real sandbox acceptance tests are still unrun; Session 6 is not complete. The owner has another computer running Linux and was asked to identify its distribution with cat /etc/os-release. Next: prepare that host with Docker and gVisor, build the image, run the sandbox profile, then verify an end-to-end real submission. Full commands and prototype limits are in SESSION_6.md.
+
+Preserved unrelated untracked gradely_mindtek/ and docs/.Rhistory. No real accounts or student submissions were created. Tests used disposable containers. Do not treat student-supplied reports as trusted grades; teacher-owned test execution remains a release requirement.

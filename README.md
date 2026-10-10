@@ -4,9 +4,9 @@ Automated grading and security feedback for Java test-automation students.
 
 ## Current milestone
 
-Sessions 4 and 5 are complete locally: teacher cohort/assignment APIs, validated ZIP uploads to MinIO, durable queue dispatch and submission status APIs now join the authentication backend. All 62 backend tests pass with disposable PostgreSQL, MinIO and RabbitMQ containers. Compose runs PostgreSQL, RabbitMQ and MinIO on dedicated loopback ports.
+Sessions 1–5 are complete and published; authentication, teacher workflows and submission intake were merged through PR #3. Session 6 adds a standalone grading worker, isolated sandbox configuration, report parsing, scoring and result APIs. The implementation is under local verification; actual gVisor execution on Linux remains pending.
 
-The approved React prototype remains unchanged: a teacher overview and split submission review, with sample-data student pages. UI/API integration, grading and AI remain future work. Real API uploads stay QUEUED until Session 6 adds a worker. See [Sessions 4–5](docs/SESSION_4_5.md) for endpoints, upload limits and delivery behavior, and [Session 3](docs/SESSION_3.md) for optional admin setup.
+The approved React prototype remains unchanged and uses sample data. UI/API integration and AI guidance remain future work. On this Mac, real submissions stay QUEUED because the required runsc runtime is unavailable. See [Session 6](docs/SESSION_6.md) for worker setup and limitations, [Sessions 4–5](docs/SESSION_4_5.md) for upload APIs, and [Session 3](docs/SESSION_3.md) for admin setup.
 
 ## Backend and infrastructure
 
@@ -46,6 +46,7 @@ All file selection is local. No ZIP bytes are uploaded or executed. Simulated su
 backend/             Spring Boot application, Flyway migrations and tests
 scripts/             Environment generation and Java 17 Maven launcher
 infra/minio/         Pinned official MinIO source build
+sandbox/             Grading image, bounded runner and sample project
 docker-compose.yml   Local PostgreSQL, RabbitMQ and MinIO
 frontend/
   src/
@@ -74,7 +75,7 @@ The prototype keeps React 18. Patched Vite, Router, Vitest, and compatible TypeS
 
 ## GitHub
 
-Public repository: https://github.com/hamdamme/gradely. Session 1 is published on main and its frontend workflow passed. Session 2 was merged through PR #1 and its backend CI passed. Sessions 3–5 are verified locally on `session-4-5/teacher-submissions`; publishing/review and remote CI verification remain pending.
+Public repository: https://github.com/hamdamme/gradely. Session 1 is published on main and its frontend workflow passed. Session 2 was merged through PR #1 and its backend CI passed. Sessions 3–5 were merged through [PR #3](https://github.com/hamdamme/gradely/pull/3), with successful backend CI. Session 6 is local work on `session-6/grading-worker`; its remote CI remains pending.
 
 [Frontend Actions run verified at session start](https://github.com/hamdamme/gradely/actions/runs/37161397951).
 

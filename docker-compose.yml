@@ -1,4 +1,4 @@
-name: gradely
+name: digital-grader
 services:
   postgres:
     image: postgres:16
@@ -32,7 +32,7 @@ services:
       retries: 20
   minio:
     build: ./infra/minio
-    image: gradely-minio:2025-10-15
+    image: digital-grader-minio:2025-10-15
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?Run scripts/init-dev-env.py}

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 import zipfile
 import importlib.util
-spec = importlib.util.spec_from_file_location("gradely_runner", Path(__file__).with_name("run-grading.py"))
+spec = importlib.util.spec_from_file_location("digital_grader_runner", Path(__file__).with_name("run-grading.py"))
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
 extract = runner.extract

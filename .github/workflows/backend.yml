@@ -20,6 +20,6 @@ jobs:
       - name: Sandbox extraction tests (no student execution)
         run: python3 sandbox/test_extraction.py
       - name: Build pinned local MinIO test image
-        run: docker build -t gradely-minio:2025-10-15 infra/minio
+        run: docker build -t digital-grader-minio:2025-10-15 infra/minio
       - name: Unit and PostgreSQL, MinIO, RabbitMQ integration tests
         run: mvn --batch-mode --no-transfer-progress -f backend/pom.xml verify

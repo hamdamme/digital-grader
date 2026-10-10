@@ -7,10 +7,10 @@
     <version>3.5.16</version>
     <relativePath/>
   </parent>
-  <groupId>com.gradely</groupId>
-  <artifactId>gradely-backend</artifactId>
+  <groupId>com.digitalgrader</groupId>
+  <artifactId>digital-grader-backend</artifactId>
   <version>0.1.0-SNAPSHOT</version>
-  <name>Gradely backend</name>
+  <name>Digital Grader backend</name>
   <description>Teaching and automated code grading platform</description>
   <properties><java.version>17</java.version><test.excludedGroups>sandbox</test.excludedGroups><test.groups></test.groups></properties>
   <dependencies>
@@ -39,6 +39,6 @@
   <build><plugins>
     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><configuration><excludedGroups>${test.excludedGroups}</excludedGroups><groups>${test.groups}</groups></configuration></plugin>
     <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin>
-    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><executions><execution><id>java-baseline</id><goals><goal>enforce</goal></goals><configuration><rules><requireJavaVersion><version>[17,18)</version><message>Gradely builds with Java 17. Set JAVA_HOME to a JDK 17 installation.</message></requireJavaVersion><requireMavenVersion><version>[3.9,4)</version></requireMavenVersion></rules></configuration></execution></executions></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId><executions><execution><id>java-baseline</id><goals><goal>enforce</goal></goals><configuration><rules><requireJavaVersion><version>[17,18)</version><message>Digital Grader builds with Java 17. Set JAVA_HOME to a JDK 17 installation.</message></requireJavaVersion><requireMavenVersion><version>[3.9,4)</version></requireMavenVersion></rules></configuration></execution></executions></plugin>
   </plugins></build>
 </project>

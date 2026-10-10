@@ -22,6 +22,9 @@ spring:
     connection-timeout: 3s
     publisher-confirm-type: correlated
     publisher-returns: true
+    listener:
+      simple:
+        prefetch: 1
     template:
       mandatory: true
   flyway:

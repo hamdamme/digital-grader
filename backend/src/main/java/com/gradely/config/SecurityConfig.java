@@ -23,6 +23,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 @EnableMethodSecurity
 public class SecurityConfig {
     @Bean

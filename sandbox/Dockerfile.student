@@ -1,0 +1,17 @@
+FROM maven:3.9.11-eclipse-temurin-17
+RUN apt-get update && apt-get install -y --no-install-recommends python3 chromium chromium-driver \
+    && rm -rf /var/lib/apt/lists/* && useradd --uid 10001 --create-home grader
+# Only this trusted fixture is executed during image construction. Submission builds are offline.
+COPY sample-project /opt/warmup
+WORKDIR /opt/warmup
+RUN mvn -B -Dmaven.repo.local=/opt/maven-cache -Dmaven.test.failure.ignore=true \
+      org.jacoco:jacoco-maven-plugin:0.8.12:prepare-agent test org.jacoco:jacoco-maven-plugin:0.8.12:report \
+    && mvn -B -Dmaven.repo.local=/opt/maven-cache org.apache.maven.plugins:maven-checkstyle-plugin:3.6.0:checkstyle \
+    && mvn -B -Dmaven.repo.local=/opt/maven-cache com.github.spotbugs:spotbugs-maven-plugin:4.9.6.0:spotbugs \
+    && rm -rf /opt/warmup
+COPY run-grading.py /opt/gradely/run-grading.py
+RUN chmod 0555 /opt/gradely/run-grading.py && mkdir /input /code /output
+ENV HOME=/code JAVA_TOOL_OPTIONS=-Xmx256m MAVEN_OPTS=-Xmx256m
+USER 10001:10001
+WORKDIR /code
+ENTRYPOINT ["python3", "-I", "/opt/gradely/run-grading.py"]

@@ -1,13 +1,13 @@
 # Planned sessions
 
-Updated October 10, 2026 (America/Chicago). Eight sessions are a working plan, not a guarantee; sandbox and security integration may require additional time.
+Updated October 11, 2026 (America/Chicago). Eight sessions are a working plan, not a guarantee; sandbox and security integration may require additional time.
 
 1. **Complete:** repository, approved UI prototype, React/TypeScript, frontend tests and public GitHub repository.
 2. **Complete and merged:** infrastructure, backend configuration/health, migrations, 17 backend tests and successful GitHub backend CI; PR #1 merged.
 3. **Complete and merged:** typed repositories, registration/login/refresh/logout, admin provisioning, role/cohort access; 45 total backend tests passed at that checkpoint; delivered through merged PR #3.
 4. **Complete and merged:** teacher cohort creation/enrollment/read APIs, validated assignments and Swagger documentation.
 5. **Complete and merged:** ZIP validation, MinIO uploads/downloads, durable RabbitMQ dispatch, attempt/deadline checks and status lifecycle; 62 backend tests pass.
-6. **In progress:** isolated grading worker, reports, coverage and scoring implemented; Ubuntu/gVisor acceptance is deferred at the owner’s request until the Ubuntu computer is ready.
+6. **In progress:** isolated grading worker, reports, coverage and scoring implemented; Ubuntu/gVisor acceptance is deferred until a suitable host is ready.
 7. Security scans and AI guidance: findings, severity mapping, hints and caching.
 8. Integration/release preparation: dashboards, overrides, end-to-end tests, CI and reproducible setup.
 
@@ -17,4 +17,4 @@ Five of eight sessions are complete. Sessions 3–5 were delivered through merge
 
 ## Commit discipline
 
-One coherent change per commit, real timestamps, no artificial revisions or backdating. User-requested milestones supersede the source spec's strict backend-first order. Production tasks T01–T32 remain subject to their actual acceptance criteria; frontend sample flows do not count as real integrations.
+Use one coherent change per commit and concise descriptions. Prefer plain wording without hyphenated compounds in prose; retain required names and command syntax. Production tasks T01–T32 remain subject to their actual acceptance criteria; frontend sample flows do not count as real integrations.

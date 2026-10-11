@@ -67,4 +67,4 @@ Verification: 62 tests, no skips; real HTTP upload → exact MinIO download byte
 
 ## Stop point
 
-Five of eight planned sessions are complete locally. Sessions 3–5 still require publishing/review and remote CI verification; this branch contains the Session 3 history. Frontend files and user-owned `gradely_mindtek/` were not modified. No student code is executed. Session 6 is sandboxed grading and worker recovery, followed by security/AI and frontend integration/release work.
+Sessions 3–5 were merged through PR #3 with successful backend CI. Intake itself executes no student code. Session 6 adds grading and worker recovery; its Linux acceptance remains pending. Security scans, AI guidance and frontend integration follow. See [project status](HANDOFF.md).

@@ -1,6 +1,6 @@
 # Session 2 — backend foundation
 
-Date: October 4, 2026 (America/Chicago).
+Foundation milestone: October 4, 2026. Setup instructions below remain applicable; [project status](HANDOFF.md) records later functionality.
 
 ## Scope
 
@@ -27,7 +27,7 @@ curl --fail http://127.0.0.1:8080/api/v1/health
 ./scripts/backend.sh --batch-mode --no-transfer-progress verify
 ```
 
-Health returns `{"status":"UP"}` only if PostgreSQL responds. Database failure produces HTTP 503 with `{"status":"DOWN"}` and no connection details. The endpoint does not yet test RabbitMQ or MinIO: those are independently checked by Compose. All other API routes return 401 until authentication is implemented.
+Health returns `{"status":"UP"}` only if PostgreSQL responds. Database failure produces HTTP 503 with `{"status":"DOWN"}` and no connection details. The endpoint does not yet test RabbitMQ or MinIO: those are independently checked by Compose. Application endpoints enforce the authentication and permissions added in subsequent milestones.
 
 ## Local services
 
@@ -35,12 +35,12 @@ Health returns `{"status":"UP"}` only if PostgreSQL responds. Database failure p
 |---|---|---|
 | Backend | http://127.0.0.1:8080/api/v1/health | Application/database health |
 | PostgreSQL | 127.0.0.1:15432 | Dedicated Digital Grader database |
-| RabbitMQ AMQP | 127.0.0.1:5673 | Future grading queue |
+| RabbitMQ AMQP | 127.0.0.1:5673 | Submission delivery |
 | RabbitMQ console | http://127.0.0.1:15673 | Queue administration |
-| MinIO S3 | http://127.0.0.1:19000 | Future submission storage |
+| MinIO S3 | http://127.0.0.1:19000 | Private submission storage |
 | MinIO console | http://127.0.0.1:19001 | Object administration |
 
-All published ports bind only to loopback. Console credentials come from `.env`: RABBIT_USERNAME/RABBIT_PASSWORD and MINIO_ACCESS_KEY/MINIO_SECRET_KEY. No credentials are printed by setup. Infrastructure data persists in digital-grader-prefixed named Docker volumes. Existing unrelated containers and their data are not modified.
+All published ports bind only to loopback. Console credentials come from `.env`: RABBIT_USERNAME/RABBIT_PASSWORD and MINIO_ACCESS_KEY/MINIO_SECRET_KEY. No credentials are printed by setup. Infrastructure data persists in named Docker volumes associated with the Compose project. Existing installations may retain their earlier project identity; see [compatibility notes](RENAMING.md). Existing unrelated containers and their data are not modified.
 
 ## Configuration
 
@@ -48,20 +48,20 @@ All published ports bind only to loopback. Console credentials come from `.env`:
 |---|---|
 | DB_NAME, DB_USERNAME, DB_PASSWORD | PostgreSQL initialization settings; changing these does not rotate an existing database automatically |
 | DB_PORT, DB_URL | Host port and matching JDBC URL; update both together |
-| RABBIT_HOST, RABBIT_PORT, RABBIT_MANAGEMENT_PORT | Local broker addresses; application integration is deferred |
+| RABBIT_HOST, RABBIT_PORT, RABBIT_MANAGEMENT_PORT | Local broker addresses |
 | RABBIT_USERNAME, RABBIT_PASSWORD | Broker initialization credentials |
 | MINIO_ENDPOINT, MINIO_PORT, MINIO_CONSOLE_PORT | Storage endpoints; update endpoint if its port changes |
-| MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET | Local storage credentials and future bucket name; bucket creation is deferred |
-| JWT_SECRET | Required, at least 64 characters; tokens are implemented in Session 3 |
-| JWT_ACCESS_TTL_MINUTES, JWT_REFRESH_TTL_DAYS | Reserved for Session 3 |
+| MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET | Local storage credentials and submission bucket |
+| JWT_SECRET | Required, at least 64 characters |
+| JWT_ACCESS_TTL_MINUTES, JWT_REFRESH_TTL_DAYS | Access and refresh token lifetime settings; see Session 3 |
 | SERVER_ADDRESS, SERVER_PORT | Default 127.0.0.1:8080 |
-| CORS_ALLOWED_ORIGINS | Reserved until frontend/API integration; not enabled in this checkpoint |
+| CORS_ALLOWED_ORIGINS | Explicit API origins; frontend integration remains pending |
 
 Missing DB_URL, DB_USERNAME, DB_PASSWORD, or JWT_SECRET fails startup before creating a datasource. Secret values are not included in validation errors.
 
 ## Database
 
-Flyway V1 preserves the source specification's DDL and adds its separately specified refresh_tokens table. There are 11 application tables plus Flyway's own schema-history table. The four requested indexes are included, along with refresh-token lookup/index constraints. Migrations are validated on startup and Flyway clean is disabled. No production users or default-password accounts are seeded yet.
+Flyway V1 preserves the source specification's DDL and adds its separately specified refresh_tokens table. V1 creates 11 application tables plus Flyway history; later migrations add outbox tables and grading claim fields. The four requested indexes are included, along with refresh-token lookup/index constraints. Migrations are validated on startup and Flyway clean is disabled. No production users or default-password accounts are seeded yet.
 
 Tests start a disposable PostgreSQL 16 container and do not touch the Compose database. They cover schema and indexes, migration idempotence, role/email/foreign-key/attempt constraints, JSON rubric round-trip, refresh-token deletion, endpoint access, missing config and health failure behavior. Docker is required; database tests are not silently skipped.
 
@@ -73,9 +73,9 @@ This is a local compatibility setup, not a production storage recommendation. Se
 
 Sources: https://github.com/minio/minio#source-only-distribution and the source pinned in the Dockerfile.
 
-## Docker credential-helper limitation in agent sessions
+## Docker credential troubleshooting
 
-If public image pulls report a macOS Keychain error, use your normal authenticated Terminal, or an isolated config for anonymous public pulls. Do not copy credentials into the project or change the global Docker login. During this session a local ignored `.data/docker-public/config.json` was used with an empty Docker Hub auth entry and the installed Docker CLI plugin directory. `DOCKER_CONFIG` and `DOCKER_HOST` were set only for those commands. Standard Terminal use should not need this workaround.
+If public image pulls report a macOS Keychain error, use your normal authenticated Terminal, or an isolated config for anonymous public pulls. Do not copy credentials into the project or change the global Docker login. An isolated configuration can be stored in ignored `.data/docker-public/config.json`, with public registry access and the installed Docker CLI plugin directory. Scope `DOCKER_CONFIG` and `DOCKER_HOST` to commands that need it. Normal Terminal use may not require this workaround.
 
 ## Stop safely
 

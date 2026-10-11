@@ -15,7 +15,7 @@ Start Docker Desktop, then use the setup from [Session 2](SESSION_2.md). From th
 ./scripts/backend.sh spring-boot:run
 ```
 
-Stop an older backend process in its own terminal before starting the new version on port 8080. An already-running Session 2 process does not automatically load these changes. Database tests run against disposable PostgreSQL containers, not your Compose database. See Session 2's isolated Docker configuration workaround if the credential helper is unavailable in an agent session.
+Stop an older backend process in its own terminal before starting the new version on port 8080. An already-running Session 2 process does not automatically load these changes. Database tests run against disposable PostgreSQL containers, not your Compose database. See Session 2's isolated Docker configuration workaround if the credential helper is unavailable in the current shell.
 
 Flyway applies V2 on startup. It adds a unique index over `lower(email)`. If pre-existing case-variant duplicates exist, migration fails for manual resolution; it never deletes user data.
 
@@ -34,7 +34,7 @@ All paths below begin with `/api/v1`. JSON is required for POST bodies. Authenti
 | GET | `/cohorts/mine` | INSTRUCTOR/ADMIN; cohorts owned by the caller (an admin may have none) |
 | GET | `/cohorts/{id}` | Owning INSTRUCTOR or ADMIN; other callers denied |
 
-Public instructor/admin registration is forbidden. Student access to instructor cohort endpoints is forbidden, including POST `/cohorts`; cohort creation itself belongs to Session 4. A reusable membership policy is tested for future student assignment APIs, which are not implemented yet. Unknown and unauthorized routes remain closed.
+Public instructor/admin registration is forbidden. Student access to instructor cohort endpoints is forbidden, including POST `/cohorts`. Cohort creation and student assignment reads were added in Session 4. Unknown and unauthorized routes remain closed.
 
 Passwords must contain at least 12 characters and fit within BCrypt's 72-byte UTF-8 limit. Emails are stored lowercase. Duplicate registration returns 409. Invalid input returns 400 without echoing submitted passwords/tokens. Bad credentials/tokens return generic 401; insufficient permission returns 403. Cross-cohort and missing-cohort detail requests are both denied before data is returned.
 
@@ -64,6 +64,6 @@ Start the backend once, then remove these bootstrap variables from `.env` and re
 
 45 backend tests pass with no skips; Maven verify builds the executable JAR. Coverage includes registration validation, hashed credentials, JWT tampering/expiry/issuer/usage/algorithm, refresh replay/concurrency/rollback, logout, deleted users, changed roles, instructor ownership, student membership, admin provisioning/bootstrap, CORS, and the earlier database/health checks.
 
-Session 2 was merged through PR #1 and its GitHub checks passed. Session 3 is locally verified; its push and remote CI are not yet verified. Frontend files were unchanged. The unrelated untracked `gradely_mindtek/` folder was left untouched.
+Session 2 was merged through PR #1. Authentication was subsequently delivered with Sessions 4 and 5 through PR #3, with successful backend CI. See [project status](HANDOFF.md) for the current checkpoint.
 
-Stop here. Session 4 adds teacher cohort creation, membership and assignment/rubric management. Before a public deployment, add account recovery, email verification, login abuse protection, transport/deployment hardening and the remaining release checks. This is a backend development checkpoint, not a production release.
+Session 4 added teacher cohort creation, membership and assignment/rubric management. Before a public deployment, add account recovery, email verification, login abuse protection, transport/deployment hardening and the remaining release checks. This is a backend development checkpoint, not a production release.

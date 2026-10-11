@@ -1,26 +1,27 @@
-# GRADER — Agent-Ready Build Specification
+# Digital Grader requirements
 **Project:** Automated Grading and Security Analysis of Student Code
 **Version:** 1.0
-**Audience:** AI coding agent (or developer) building the entire application from scratch.
+**Audience:** Project contributors and reviewers.
 
 ---
 
-## 0. MISSION & AGENT RULES
+## 0. SCOPE AND DELIVERY REQUIREMENTS
 
-You are building **Grader**, a full-stack web application that lets bootcamp students submit Java test-automation code (Selenium/TestNG/Cucumber/Maven), automatically executes it in isolated sandboxes, grades it, scans it for security vulnerabilities, and provides AI-generated hints. Instructors manage assignments and view dashboards.
+Digital Grader lets bootcamp students submit Java test automation projects using Selenium, TestNG, Cucumber and Maven. The target system executes submissions in isolated sandboxes, grades results, scans for vulnerabilities and provides AI hints. Instructors manage assignments and review results.
 
-**Rules you must follow:**
-1. Build in the exact order of the Task List (T01 → T32). Do not skip ahead; each task depends on previous ones.
-2. After EVERY task, run its Acceptance Test. If it fails, fix before moving on.
-3. Commit after each task with message format: `feat(T##): <short description>`.
-4. Never hardcode secrets. All config comes from environment variables (see §4).
-5. If a requirement is ambiguous, choose the simplest reasonable option and note it in a `DECISIONS.md` file.
-6. All code must compile/build with zero errors before the next task starts.
-7. Write the README.md as you go: setup instructions, architecture diagram (ASCII), and how to run.
+This specification describes the target system, not a claim that every feature is implemented. [Project status](HANDOFF.md) records completed milestones and remaining acceptance work. [Technical decisions](../DECISIONS.md) records implementation choices that supersede the original baseline.
+
+1. Respect task dependencies and record unfinished acceptance requirements.
+2. Run relevant acceptance checks for each implemented milestone and record their results.
+3. Keep commits focused on coherent changes with concise descriptions.
+4. Load secrets and deployment configuration from environment variables.
+5. Record significant design choices in `DECISIONS.md`.
+6. Keep the implementation buildable and resolve relevant test failures.
+7. Maintain setup, architecture and verification documentation alongside the code.
 
 ---
 
-## 1. TECH STACK (PINNED VERSIONS)
+## 1. TECH STACK (ORIGINAL PLANNING BASELINE)
 
 | Layer | Technology | Version |
 |---|---|---|
@@ -608,7 +609,7 @@ Cache: one hint per submission in `hints` table; repeated POSTs return the cache
 - **T29** Dockerfiles (backend, worker, frontend) + root compose extension to run all 6 services with one `docker compose up`. *Test: clean machine (clone → cp .env.example .env → compose up) works end-to-end.*
 - **T30** Unit test coverage ≥ 70% on backend services; CI workflow (.github/workflows/ci.yml): build, test, docker build on push. *Test: CI green on main.*
 - **T31** Playwright E2E: login → submit → result visible. *Test: headed run passes on staging compose.*
-- **T32** Final README: architecture ASCII diagram, setup, env table, API link to Swagger, screenshots placeholder, DECISIONS.md review. *Test: another agent can set up from README alone.*
+- **T32** Final README: architecture ASCII diagram, setup, env table, API link to Swagger, screenshots placeholder, DECISIONS.md review. *Test: a new contributor can complete setup using the README.*
 
 ---
 

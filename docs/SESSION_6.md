@@ -48,13 +48,13 @@ After those pass, initialize the local services as described in Session 2, then 
 
 Optional environment settings: `SANDBOX_IMAGE` (default `digital-grader-student:session6`), `SANDBOX_TIMEOUT_SECONDS` (default 600, range 5–600), `SANDBOX_MEMORY_MB` (default 1536, range 512–4096), `SANDBOX_CPU_LIMIT` (default 1, range 0.25–4). Java and Maven each use a bounded heap inside the sandbox.
 
-Official runtime setup: https://gvisor.dev/docs/user_guide/quick_start/docker/. The owner confirmed Ubuntu; setup and acceptance are deferred until that computer is ready.
+Official runtime setup: https://gvisor.dev/docs/user_guide/quick_start/docker/. Ubuntu setup and acceptance are deferred until a suitable host is ready.
 
 ## Verification and stop point
 
 The sandbox image built on Docker Desktop. All 76 standard backend tests pass with zero failures or skips; Maven verify succeeds. All three Python extraction checks pass. Standard backend tests exercise real PostgreSQL, MinIO and RabbitMQ, with a substituted sandbox for pipeline tests. They verify claims, retry limits, stale-claim fencing, stored artifacts/results, access controls and standalone listener startup. Default CI runs these checks; it does **not** validate gVisor execution.
 
-This Mac's Docker engine has no `runsc`; the readiness script correctly rejects it. The two real sandbox acceptance tests remain unrun. Session 6 is therefore **in progress**, with five of eight sessions complete. New Session 6 changes have not been pushed or verified by remote CI.
+The validation host had no `runsc`; the readiness script correctly rejected it. The two real sandbox acceptance tests remain unrun. Session 6 is therefore **in progress**, with five of eight sessions complete. New Session 6 changes have not been pushed or verified by remote CI.
 
 ## Prototype limits
 

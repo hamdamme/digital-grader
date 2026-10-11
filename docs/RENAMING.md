@@ -1,17 +1,19 @@
-# Digital Grader rename — October 10, 2026
+# Project naming and existing installations
 
-The display name is Digital Grader. Repository, npm/Maven artifacts, images and configuration prefixes use digital-grader; Java packages use com.digitalgrader. Git history is retained.
+The project name is Digital Grader. The repository, build artifacts, image names and configuration prefixes use `digital-grader`; Java packages use `com.digitalgrader`.
 
-GitHub: https://github.com/hamdamme/digital-grader. The repository ID is unchanged and its former URL redirects. Local origin targets the new URL. The intended folder is /Users/nazar/Desktop/PROJECTS/digital-grader; filesystem controls denied the agent's folder move, so the owner must perform that final move in Terminal.
+The GitHub repository is [hamdamme/digital-grader](https://github.com/hamdamme/digital-grader). Its rename and the local folder rename are complete. The repository retains its Git history and original repository ID. Existing clones should use the current remote:
 
-## Existing local data
+```sh
+git remote set-url origin git@github.com:hamdamme/digital-grader.git
+```
 
-Existing .env credentials, database names and persisted service data are preserved. The ignored local .env pins COMPOSE_PROJECT_NAME to the pre-rename project and SUBMISSION_QUEUE to the existing queue. These compatibility identifiers are not public branding. Fresh installations use the new names from .env.example and docker-compose.yml. Do not delete existing volumes or regenerate credentials merely to rename them. Both publisher and listener honor SUBMISSION_QUEUE.
+## Preserve existing data
 
-Restart API and worker together when adopting this build. Configuration properties now start with digital-grader; use the updated worker launcher. Access JWTs with the old issuer require a fresh login or refresh. Refresh token storage and password hashes are unchanged. Rebuild sandbox images with the new tags. The student image was rebuilt and the unchanged MinIO image retagged locally.
+Existing credentials, database names and persisted service data do not need renaming. For an existing installation, `COMPOSE_PROJECT_NAME` can retain the original Compose project identity and `SUBMISSION_QUEUE` can retain the existing queue. Set these in the ignored `.env` when needed. Both publisher and listener honor `SUBMISSION_QUEUE`.
 
-Unrelated user-owned reference files are untouched. Git history and ignored caches may contain the former name.
+Fresh installations use defaults from `.env.example` and `docker-compose.yml`. Do not delete volumes or regenerate credentials to change their names.
 
-## Verification
+Restart the API and worker together when adopting the renamed build. Configuration properties now start with `digital-grader`; use the updated worker launcher. Access JWTs with the former issuer require login or refresh. Refresh token storage and password hashes are unchanged.
 
-76 backend tests passed after a clean build, 13 frontend tests passed, TypeScript/Vite build passed, and three ZIP extraction tests passed. The renamed sandbox image built. Real runsc acceptance is deferred until the owner's Ubuntu computer is ready; Session 6 remains incomplete.
+Rebuild images using the current documented tags. See [backend setup](SESSION_2.md) and [sandbox setup](SESSION_6.md). The rename does not complete the outstanding Linux acceptance checks.

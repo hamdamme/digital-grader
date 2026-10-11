@@ -26,3 +26,6 @@ __pycache__/
 .sites-runtime/
 .data/
 uploads/
+
+# Local R session history
+.Rhistory

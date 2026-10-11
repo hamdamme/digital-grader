@@ -1,28 +1,30 @@
 # Digital Grader
 
-Automated grading and security feedback for Java test-automation students.
+Grading and security feedback for students learning Java test automation.
 
-## Current milestone
+## Status
 
-Sessions 1–5 are complete and published; authentication, teacher workflows and submission intake were merged through PR #3. Session 6 adds a standalone grading worker, isolated sandbox configuration, report parsing, scoring and result APIs. The implementation is under local verification; actual gVisor execution on Linux remains pending.
+The backend implements authentication, cohort and assignment management, validated ZIP uploads, private storage and queue dispatch. A grading worker, report parsing, scoring and result APIs are implemented locally. Real sandbox acceptance on Linux remains pending.
 
-The approved React prototype remains unchanged and uses sample data. UI/API integration and AI guidance remain future work. On this Mac, real submissions stay QUEUED because the required runsc runtime is unavailable. See [Session 6](docs/SESSION_6.md) for worker setup and limitations, [Sessions 4–5](docs/SESSION_4_5.md) for upload APIs, and [Session 3](docs/SESSION_3.md) for admin setup.
+The React frontend is a prototype using sample data. It does not upload submissions to the API or display real grades. Security scans, AI guidance and frontend integration are planned. See [project status](docs/HANDOFF.md) for completed milestones, recorded verification and remaining work.
 
-## Backend and infrastructure
+## Local setup
 
-Requires Docker with Compose v2, Java 17, Maven 3.9 and Python 3. From the repository root:
+Requirements: Docker with Compose v2, Java 17, Maven 3.9 and Python 3. The frontend requires Node.js 24 LTS, with a minimum supported version of 22.12.
+
+From the repository root:
 
 ```sh
-python3 scripts/init-dev-env.py   # once; preserves any existing .env
+python3 scripts/init-dev-env.py   # first setup only; preserves an existing .env
 docker compose up -d --build --wait --wait-timeout 180
 ./scripts/backend.sh spring-boot:run
 ```
 
-Then open http://127.0.0.1:8080/api/v1/health. Run `./scripts/backend.sh -B -ntp verify` for backend tests. See [Session 2 setup](docs/SESSION_2.md) for service ports, configuration, source-built MinIO, troubleshooting and stop/restart instructions. The first MinIO build can take several minutes. MinIO is a local compatibility dependency; upstream is archived, so production storage selection remains open.
+The API health endpoint is http://127.0.0.1:8080/api/v1/health. API documentation is available at http://127.0.0.1:8080/swagger-ui/index.html.
 
-## Run the frontend
+The first MinIO build may take several minutes. It uses pinned source for local development; production storage selection remains open. See [backend setup](docs/SESSION_2.md) for service ports, configuration and troubleshooting, and [authentication](docs/SESSION_3.md) for initial administrator setup.
 
-Use Node.js 24 LTS (minimum 22.12) and npm.
+Start the frontend in a separate terminal:
 
 ```sh
 cd frontend
@@ -30,57 +32,51 @@ npm ci
 npm run dev
 ```
 
-Open http://127.0.0.1:5176. The server binds to loopback and fails clearly if its port is occupied. The earlier Python preview is obsolete; it cannot serve React source files.
+Open http://127.0.0.1:5176. To inspect a production build locally, use `npm run build` followed by `npm run preview`, then open http://127.0.0.1:5175.
+
+Frontend file selection remains local and simulated results do not analyze the selected project. Reloading discards local interaction state. Real API submissions remain queued unless a supported worker is running. See [worker setup](docs/SESSION_6.md) for Linux and gVisor requirements.
+
+## Verification
 
 ```sh
-npm test          # component and submission lifecycle checks
-npm run build    # strict TypeScript check plus production build
-npm run preview  # preview the build at http://127.0.0.1:5175
+./scripts/backend.sh -B -ntp verify
+python3 sandbox/test_extraction.py
+cd frontend
+npm test
+npm run build
 ```
 
-All file selection is local. No ZIP bytes are uploaded or executed. Simulated submissions show the same labeled Java Fundamentals sample report, not an analysis of the selected project. Reloading discards local interaction state.
+Backend integration tests require Docker and use disposable services. The standard suite substitutes sandbox execution; actual runtime tests use the separate sandbox profile documented in the worker guide. GitHub workflows check relevant backend and frontend changes. A local pass does not establish remote CI success.
 
-## Structure
+## Project structure
 
-```text
-backend/             Spring Boot application, Flyway migrations and tests
-scripts/             Environment generation and Java 17 Maven launcher
-infra/minio/         Pinned official MinIO source build
-sandbox/             Grading image, bounded runner and sample project
-docker-compose.yml   Local PostgreSQL, RabbitMQ and MinIO
-frontend/
-  src/
-    components/   Shared shell and visual components
-    data/         Typed demo fixtures
-    lib/          File-selection validation
-    pages/        Assignments, submission, results, progress
-    App.tsx       Routes, including not-found handling
-    App.test.tsx  Submission lifecycle and interaction checks
-  public/         Static assets
-  package-lock.json
-.github/workflows/frontend.yml
-  npm ci -> tests -> typecheck + build -> dependency audit
+| Path | Contents |
+|---|---|
+| `backend/` | Spring Boot API, worker, migrations and tests |
+| `frontend/` | React pages, shared components and demonstration fixtures |
+| `sandbox/` | Grading image, bounded runner and sample Java project |
+| `infra/minio/` | Pinned MinIO source build |
+| `scripts/` | Environment setup and launch scripts |
+| `.github/workflows/` | Backend and frontend checks |
+| `docs/` | Requirements, setup guides and milestone records |
 
-docs/BUILD_SPEC.md  Original requirements, preserved verbatim
-DECISIONS.md       Scope and technology decisions
-docs/PLAN.md       Working schedule
-docs/HANDOFF.md    Verified status and next session
-```
+## Documentation
 
-For existing checkouts, see [rename and local-data compatibility notes](docs/RENAMING.md).
+- [Architecture](docs/ARCHITECTURE.md)
+- [Technical decisions](DECISIONS.md)
+- [Project requirements](docs/BUILD_SPEC.md)
+- [Current progress](docs/HANDOFF.md) and [planned sessions](docs/PLAN.md)
+- [Teacher and submission APIs](docs/SESSION_4_5.md)
+- [Naming and existing installation compatibility](docs/RENAMING.md)
 
-## Development workflow
+Requirements describe the target product. The implemented dependency versions are recorded in Maven and npm manifests and the npm lockfile. Planned features and original baseline versions do not override the current implementation or its documented limitations.
 
-Use short-lived feature branches and commits that represent coherent changes. Record meaningful decisions, run relevant checks, and keep the lockfile committed. Do not commit credentials, dependency folders, build output, or student submissions. CI is configured for frontend changes; a successful local run does not imply a GitHub Actions run has occurred.
+## Development
 
-The prototype keeps React 18. Patched Vite, Router, Vitest, and compatible TypeScript versions supersede the older build-spec versions; exact installed versions are pinned in package.json and package-lock.json. The visual design and Java/Spring target remain unchanged. Tailwind, charts and frontend API/authentication integration are deferred until needed for the next implementation slices.
+Use focused branches and commits that describe concrete changes. Prefer plain wording in descriptions, while preserving required technical identifiers. Run checks relevant to each change and record unresolved acceptance work. Keep credentials, dependencies, generated output and student submissions out of Git.
 
-## GitHub
-
-Public repository: https://github.com/hamdamme/digital-grader. Session 1 is published on main and its frontend workflow passed. Session 2 was merged through PR #1 and its backend CI passed. Sessions 3–5 were merged through [PR #3](https://github.com/hamdamme/digital-grader/pull/3), with successful backend CI. Session 6 is local work on `session-6/grading-worker`; its remote CI remains pending.
-
-[Frontend Actions run verified at session start](https://github.com/hamdamme/digital-grader/actions/runs/37161397951).
+Public repository: [hamdamme/digital-grader](https://github.com/hamdamme/digital-grader).
 
 ## License
 
-MIT — see LICENSE.
+MIT — see [LICENSE](LICENSE). Dependencies retain their own licenses; see [third party notices](THIRD_PARTY.md).

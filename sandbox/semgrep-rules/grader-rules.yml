@@ -1,0 +1,58 @@
+rules:
+  - id: grader-hardcoded-secret
+    languages: [java]
+    severity: ERROR
+    message: Hardcoded credential or API key
+    metadata:
+      cwe: CWE-798
+      grader_severity: CRITICAL
+      guidance: Load credentials from protected configuration instead of source code.
+    pattern-regex: '(?i)(password|passwd|secret|api[_-]?key|token)\s*=\s*"[^"\r\n]+"'
+  - id: grader-sql-concat
+    languages: [java]
+    severity: ERROR
+    message: SQL query constructed using concatenation
+    metadata: {cwe: CWE-89, grader_severity: CRITICAL}
+    pattern-either:
+      - pattern: $S.execute($A + $B)
+      - pattern: $S.executeQuery($A + $B)
+      - pattern: $C.prepareStatement($A + $B)
+  - id: grader-xss
+    languages: [java]
+    severity: WARNING
+    message: Review output escaping for untrusted values
+    metadata: {cwe: CWE-79, grader_severity: HIGH}
+    pattern: out.println($X)
+  - id: grader-cmd-injection
+    languages: [java]
+    severity: ERROR
+    message: Command constructed using concatenation
+    metadata: {cwe: CWE-78, grader_severity: HIGH}
+    pattern: Runtime.getRuntime().exec($A + $B)
+  - id: grader-path-traversal
+    languages: [java]
+    severity: WARNING
+    message: Review path validation for concatenated values
+    metadata: {cwe: CWE-22, grader_severity: HIGH}
+    pattern: new File($A + $B)
+  - id: grader-weak-crypto
+    languages: [java]
+    severity: WARNING
+    message: Weak cryptographic algorithm
+    metadata: {cwe: CWE-327, grader_severity: MEDIUM}
+    pattern-either:
+      - pattern: MessageDigest.getInstance("MD5")
+      - pattern: MessageDigest.getInstance("SHA-1")
+      - pattern: Cipher.getInstance("DES")
+  - id: grader-insecure-deser
+    languages: [java]
+    severity: WARNING
+    message: Review deserialization of untrusted input
+    metadata: {cwe: CWE-502, grader_severity: HIGH}
+    pattern: new ObjectInputStream(...).readObject()
+  - id: grader-missing-tls
+    languages: [java]
+    severity: INFO
+    message: Plain HTTP connection
+    metadata: {cwe: CWE-319, grader_severity: MEDIUM}
+    pattern-regex: 'new\s+URL\s*\(\s*"http://[^"\r\n]+"\s*\)'

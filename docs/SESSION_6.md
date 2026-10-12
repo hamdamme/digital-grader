@@ -22,7 +22,7 @@ Logs and reports are stored privately in MinIO. The completed grade transaction 
 - `GET /api/v1/submissions/{id}/build-log`: authorized five-minute download URL; 409 until available.
 - Submission responses include `failureReason` for unsuccessful attempts.
 
-These reuse submission ownership/cohort access checks. Security findings and hints remain empty until Session 7. The frontend remains unchanged and uses sample data.
+These reuse submission ownership/cohort access checks. Session 7 now adds stored security findings and cached hints. The frontend remains unchanged and uses sample data.
 
 ## Run on a Linux host with gVisor
 
@@ -36,7 +36,7 @@ docker build -f sandbox/Dockerfile.student -t digital-grader-student:session6 sa
 ./scripts/backend.sh -B -ntp -Psandbox test
 ```
 
-The sandbox profile runs two real runtime acceptance tests: a sample grade with failing/passing tests, coverage and quality reports, and a hanging test that must time out. Missing `runsc` is a failure, never a silent skip or fallback.
+The grading portion of the sandbox profile runs two real runtime acceptance tests: a sample grade with failing/passing tests, coverage and quality reports, and a hanging test that must time out. Missing `runsc` is a failure, never a silent skip or fallback.
 
 After those pass, initialize the local services as described in Session 2, then launch the API and worker in separate terminals:
 
@@ -54,7 +54,7 @@ Official runtime setup: https://gvisor.dev/docs/user_guide/quick_start/docker/. 
 
 The sandbox image built on Docker Desktop. All 76 standard backend tests pass with zero failures or skips; Maven verify succeeds. All three Python extraction checks pass. Standard backend tests exercise real PostgreSQL, MinIO and RabbitMQ, with a substituted sandbox for pipeline tests. They verify claims, retry limits, stale-claim fencing, stored artifacts/results, access controls and standalone listener startup. Default CI runs these checks; it does **not** validate gVisor execution.
 
-The validation host had no `runsc`; the readiness script correctly rejected it. The two real sandbox acceptance tests remain unrun. Session 6 is therefore **in progress**, with five of eight sessions complete. New Session 6 changes have not been pushed or verified by remote CI.
+The validation host had no `runsc`; the readiness script correctly rejected it. The two real sandbox acceptance tests remain unrun. Session 6 is therefore **in progress**, with five of eight sessions complete. Session 6 was pushed at b52db27; backend and frontend CI passed. Real runtime acceptance remains pending.
 
 ## Prototype limits
 
@@ -62,4 +62,4 @@ The validation host had no `runsc`; the readiness script correctly rejected it. 
 - Student-controlled Maven projects can falsify their own reports. This is a prototype grading pipeline, not trustworthy assessment evidence. A teacher-controlled test harness and report provenance are release requirements.
 - Full hostile-code containment, Selenium behavior under gVisor, real deadline/resource enforcement and end-to-end submission grading remain acceptance work on Linux.
 - Worker crashes may leave containers or unpublished report objects. Containers carry `digital-grader.sandbox=true` for operator inspection; crash cleanup/reconciliation requires further work. Claim recovery prevents stale database writes but does not prove container cleanup after host failure.
-- Security scans, AI guidance and real frontend integration remain Sessions 7–8.
+- Session 7 adds security scans and optional hints; their runtime acceptance and frontend integration remain outstanding.

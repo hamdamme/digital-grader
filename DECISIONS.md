@@ -39,3 +39,9 @@ Atomic claims and tokens prevent stale workers from overwriting newer attempts. 
 ## Acceptance boundary
 
 Docker service tests with a substituted sandbox validate orchestration, not gVisor containment. Real runtime tests and grading through the complete pipeline remain pending on Linux. Student projects can falsify their own reports; trusted tests controlled by instructors are required before using results as authoritative grades.
+
+## Security scans and hints
+
+Consume the existing security outbox directly with database claims instead of introducing another RabbitMQ delivery layer. Track scan state separately so missing or failed scans cannot be presented as clean. Use the existing gVisor execution boundary, an offline vulnerability snapshot and bounded report parsing. Refresh trusted reference data separately without any submission mounts.
+
+Use a configurable Chat Completions provider for compatibility with hosted services and Ollama. Keep generation disabled by default. Send only bounded test evidence and finding locations; source excerpts are deferred. Persist one hint per submission with a unique constraint and expiring claims. Enforce output size and simple code rejection, while documenting that these checks do not guarantee tutoring quality or prevent every solution disclosure.

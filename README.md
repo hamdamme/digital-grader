@@ -6,7 +6,7 @@ Grading and security feedback for students learning Java test automation.
 
 The backend implements authentication, cohort and assignment management, validated ZIP uploads, private storage and queue dispatch. A grading worker, report parsing, scoring and result APIs are implemented locally. Real sandbox acceptance on Linux remains pending.
 
-The React frontend is a prototype using sample data. It does not upload submissions to the API or display real grades. Security scans, AI guidance and frontend integration are planned. See [project status](docs/HANDOFF.md) for completed milestones, recorded verification and remaining work.
+The React frontend is a prototype using sample data. It does not upload submissions to the API or display real grades. Security processing and cached AI hints are implemented locally, with runtime and provider acceptance pending. Frontend integration is planned. See [project status](docs/HANDOFF.md) for completed milestones, recorded verification and remaining work.
 
 ## Local setup
 
@@ -67,6 +67,7 @@ Backend integration tests require Docker and use disposable services. The standa
 - [Project requirements](docs/BUILD_SPEC.md)
 - [Current progress](docs/HANDOFF.md) and [planned sessions](docs/PLAN.md)
 - [Teacher and submission APIs](docs/SESSION_4_5.md)
+- [Security scans and hints](docs/SESSION_7.md)
 - [Naming and existing installation compatibility](docs/RENAMING.md)
 
 Requirements describe the target product. The implemented dependency versions are recorded in Maven and npm manifests and the npm lockfile. Planned features and original baseline versions do not override the current implementation or its documented limitations.

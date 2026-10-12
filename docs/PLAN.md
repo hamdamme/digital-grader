@@ -1,6 +1,6 @@
 # Planned sessions
 
-Updated October 11, 2026 (America/Chicago). Eight sessions are a working plan, not a guarantee; sandbox and security integration may require additional time.
+Updated October 12, 2026 (America/Chicago). Eight sessions are a working plan, not a guarantee; sandbox and security integration may require additional time.
 
 1. **Complete:** repository, approved UI prototype, React/TypeScript, frontend tests and public GitHub repository.
 2. **Complete and merged:** infrastructure, backend configuration/health, migrations, 17 backend tests and successful GitHub backend CI; PR #1 merged.
@@ -8,7 +8,7 @@ Updated October 11, 2026 (America/Chicago). Eight sessions are a working plan, n
 4. **Complete and merged:** teacher cohort creation/enrollment/read APIs, validated assignments and Swagger documentation.
 5. **Complete and merged:** ZIP validation, MinIO uploads/downloads, durable RabbitMQ dispatch, attempt/deadline checks and status lifecycle; 62 backend tests pass.
 6. **In progress:** isolated grading worker, reports, coverage and scoring implemented; Ubuntu/gVisor acceptance is deferred until a suitable host is ready.
-7. Security scans and AI guidance: findings, severity mapping, hints and caching.
+7. **In progress:** security report mapping, scan worker, result integration and cached hint API implemented locally. Real scanner and provider acceptance remain pending; see SESSION_7.md.
 8. Integration/release preparation: dashboards, overrides, end-to-end tests, CI and reproducible setup.
 
 ## Current stop point

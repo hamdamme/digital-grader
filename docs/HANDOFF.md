@@ -1,6 +1,6 @@
 # Project status
 
-Updated October 11, 2026. This file is the current checkpoint; session documents describe individual milestones.
+Updated October 12, 2026. This file is the current checkpoint; session documents describe individual milestones.
 
 ## Completed work
 
@@ -12,23 +12,23 @@ Updated October 11, 2026. This file is the current checkpoint; session documents
 | 4 | Teacher cohorts, enrollment and assignments | Complete; merged through PR #3 |
 | 5 | ZIP uploads, private storage and queue dispatch | Complete; merged through PR #3 |
 | 6 | Grading worker, report parsing, scoring and result APIs | Implemented locally; Linux acceptance pending |
-| 7 | Security scans and AI guidance | Planned |
+| 7 | Security scans and AI guidance | Implemented locally; runtime and provider acceptance pending |
 | 8 | Frontend integration and release preparation | Planned |
 
 Digital Grader is the current project name. The repository and local folder rename are complete. Existing data compatibility settings are described in [Renaming](RENAMING.md).
 
 ## Verification
 
-The latest recorded validation on October 10 passed 76 backend tests, 13 frontend tests and three ZIP extraction tests. Maven verify, the frontend production build and the renamed sandbox image build succeeded. Backend integration tests used disposable PostgreSQL, RabbitMQ and MinIO containers. Grading orchestration tests substituted the sandbox.
+Validation on October 12 passed 94 backend tests, three ZIP extraction tests and three scanner smoke tests. Maven verify and the security image build succeeded. Backend integration tests used disposable PostgreSQL, RabbitMQ and MinIO containers; provider tests used a local HTTP fixture. Grading orchestration substituted the sandbox. The previous frontend validation passed 13 tests and a production build on October 10; frontend code was unchanged this session.
 
-The two real gVisor acceptance tests have not run. Ubuntu setup is deferred until a suitable host is ready. Session 6 remains incomplete; successful ordinary tests do not establish containment or real grading behavior.
+The three real gVisor acceptance tests (two grading and one security) have not run. Ubuntu setup is deferred until a suitable host is ready. Session 6 remains incomplete; successful ordinary tests do not establish containment or real grading behavior.
 
 ## Current behavior
 
-The frontend uses sample data and is not connected to the API. Backend uploads are real, but remain queued unless a worker is running on a supported host. The worker requires runsc and refuses to substitute another runtime. Security processing and AI guidance are not implemented. Student reports are not yet authoritative assessment evidence; a test harness controlled by instructors remains a release requirement.
+The frontend uses sample data and is not connected to the API. Backend uploads are real, but remain queued unless a worker is running on a supported host. The worker requires runsc and refuses to substitute another runtime. Security processing and an optional hint provider are implemented locally; runtime acceptance is pending and hint generation is disabled by default. Student reports are not yet authoritative assessment evidence; a test harness controlled by instructors remains a release requirement.
 
 ## Next work
 
-Independent Session 7 work can proceed while Ubuntu setup is deferred. Resume Session 6 acceptance by preparing Linux with Docker and gVisor, running the sandbox profile, and verifying an actual submission through the full pipeline. See [Worker setup](SESSION_6.md).
+Session 7 adds a security image, durable scan claims, findings in result responses and cached tutoring hints. See [Session 7](SESSION_7.md) for configuration, data transfer behavior and acceptance limits. The Ubuntu host, vulnerability snapshot and live provider checks remain deferred. Frontend integration is still planned for Session 8.
 
-The current local branch is `session-6/grading-worker`. Its worker and rename commits were last recorded as unpublished; a subsequent push and remote CI result have not been verified. Check the remote before treating local work as released.
+The current branch is `session-7/security-feedback`, based on the pushed Session 6 branch. The previous [backend CI run](https://github.com/hamdamme/digital-grader/actions/runs/38173723914) passed at commit b52db27. Session 7 changes have not been pushed or checked by remote CI. Five sessions are complete; Sessions 6 and 7 retain outstanding acceptance work.

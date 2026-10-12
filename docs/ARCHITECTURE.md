@@ -11,7 +11,7 @@
 | RabbitMQ | Submission delivery | Integrated |
 | Standalone worker | Claims, sandbox execution, report parsing and scoring | Implemented; real runtime acceptance pending |
 | gVisor sandbox | Isolated Java builds with bounded resources | Requires Linux verification |
-| Security and hint services | Findings and AI guidance | Planned |
+| Security and hint services | Findings and cached AI guidance | Implemented locally; acceptance pending |
 
 ## Submission flow
 

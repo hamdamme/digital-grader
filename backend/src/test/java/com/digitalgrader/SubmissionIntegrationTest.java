@@ -60,6 +60,11 @@ class SubmissionIntegrationTest {
     @Autowired org.springframework.amqp.rabbit.core.RabbitTemplate rabbit;
     @MockitoSpyBean StorageService storage;
     @MockitoSpyBean RabbitPublisher publisher;
+    @Autowired com.digitalgrader.scanning.ScanService scanning;
+    @Autowired com.digitalgrader.scanning.ScanRepository scanJobs;
+    @Autowired com.digitalgrader.feedback.HintRepository hintJobs;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean com.digitalgrader.scanning.SecurityScanner scanner;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean com.digitalgrader.feedback.HintProvider hintProvider;
     User teacher,student,other;
     long assignment;
     byte[] archive;
@@ -205,6 +210,99 @@ class SubmissionIntegrationTest {
         var zero=new com.digitalgrader.grading.Scoring.Score(java.math.BigDecimal.ZERO,java.math.BigDecimal.ZERO,java.math.BigDecimal.ZERO,java.math.BigDecimal.ZERO);
         assertThat(jobs.finish(stale,List.of(),com.digitalgrader.grading.ReportParser.jacoco(null),zero,false,"fixture-log")).isFalse();
         assertThat(jobs.finish(current,List.of(),com.digitalgrader.grading.ReportParser.jacoco(null),zero,false,"fixture-log")).isTrue();
+    }
+    @Test void scanPersistsOnceAndResultsRespectAccess() throws Exception {
+        long id=gradedSubmission();
+        var finding=new com.digitalgrader.scanning.ScanReports.Finding("SEMGREP","fixture","CWE-798","CRITICAL","src/Test.java",1,"Hardcoded credential",null,null,null,null);
+        when(scanner.scan(any())).thenReturn(List.of(finding));
+        assertThat(scanning.scanNext()).isTrue();
+        assertThat(scanning.scanNext()).isFalse();
+        assertThat(scanJobs.status(id)).isEqualTo("COMPLETE");
+        assertThat(get("/submissions/"+id+"/result",student).getBody()).contains("CRITICAL","securityStatus","COMPLETE");
+        assertThat(get("/submissions/"+id+"/result",other).getStatusCode().value()).isEqualTo(403);
+        verify(scanner,times(1)).scan(any());
+    }
+    @Test void failedScansRetryThenRemainFailed() throws Exception {
+        long id=gradedSubmission();
+        when(scanner.scan(any())).thenThrow(new IllegalStateException("fixture error"));
+        for (int i=0;i<3;i++) { jdbc.update("UPDATE security_outbox SET next_attempt_at=now()");assertThat(scanning.scanNext()).isTrue(); }
+        assertThat(scanJobs.status(id)).isEqualTo("FAILED");
+        assertThat(scanJobs.findings(id)).isEmpty();
+        assertThat(scanning.scanNext()).isFalse();
+    }
+    @Test void expiredSecurityClaimsCannotStoreLateFindings() throws Exception {
+        long id=gradedSubmission();
+        var first=scanJobs.claimNext().orElseThrow();
+        assertThat(scanJobs.claimNext()).isEmpty();
+        jdbc.update("UPDATE security_outbox SET started_at=now()-interval '1 hour'");
+        assertThat(scanJobs.recoverStale()).isEqualTo(1);
+        var second=scanJobs.claimNext().orElseThrow();
+        assertThat(scanJobs.finish(first,List.of())).isFalse();
+        assertThat(scanJobs.finish(second,List.of())).isTrue();
+        assertThat(scanJobs.status(id)).isEqualTo("COMPLETE");
+    }
+    @Test void hintsRequireCompletedScansAndCacheOneProviderResponse() throws Exception {
+        long id=gradedSubmission();
+        assertThat(hint(id,student).getStatusCode().value()).isEqualTo(409);
+        when(scanner.scan(any())).thenReturn(List.of());scanning.scanNext();
+        when(hintProvider.generate(anyString())).thenReturn(new com.digitalgrader.feedback.HintProvider.Reply("Compare the assertion with the expected value.","fixture"));
+        assertThat(hint(id,other).getStatusCode().value()).isEqualTo(403);
+        assertThat(hint(id,student).getStatusCode().value()).isEqualTo(201);
+        assertThat(hint(id,teacher).getStatusCode().value()).isEqualTo(201);
+        verify(hintProvider,times(1)).generate(anyString());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM hints WHERE submission_id=?",Integer.class,id)).isEqualTo(1);
+        assertThat(get("/submissions/"+id+"/result",student).getBody()).contains("Compare the assertion");
+    }
+    @Test void unavailableHintsAreNotCachedAndConcurrentClaimsAreFenced() throws Exception {
+        long id=gradedSubmission();when(scanner.scan(any())).thenReturn(List.of());scanning.scanNext();
+        when(hintProvider.generate(anyString())).thenThrow(new IllegalStateException("fixture secret error"));
+        var response=hint(id,student);
+        assertThat(response.getStatusCode().value()).isEqualTo(503);
+        assertThat(response.getBody()).doesNotContain("fixture secret");
+        assertThat(hintJobs.cached(id)).isEmpty();
+        assertThat(hint(id,student).getStatusCode().value()).isEqualTo(409);
+        jdbc.update("UPDATE submissions SET hint_retry_at=NULL WHERE id=?",id);
+        var old=hintJobs.claim(id);
+        assertThatThrownBy(() -> hintJobs.claim(id)).isInstanceOf(com.digitalgrader.common.ApiException.class);
+        jdbc.update("UPDATE submissions SET hint_started_at=now()-interval '5 minutes' WHERE id=?",id);
+        var current=hintJobs.claim(id);
+        var reply=new com.digitalgrader.feedback.HintProvider.Reply("Check the expected result.","fixture");
+        assertThatThrownBy(() -> hintJobs.finish(id,old,reply)).isInstanceOf(com.digitalgrader.common.ApiException.class);
+        hintJobs.finish(id,current,reply);
+        assertThat(hintJobs.cached(id)).isPresent();
+    }
+    @Test void rejectsCodeSolutionsWithoutCachingThem() throws Exception {
+        long id=gradedSubmission();when(scanner.scan(any())).thenReturn(List.of());scanning.scanNext();
+        when(hintProvider.generate(anyString())).thenReturn(new com.digitalgrader.feedback.HintProvider.Reply("public void solution() { return; }","fixture"));
+        assertThat(hint(id,student).getStatusCode().value()).isEqualTo(503);
+        assertThat(hintJobs.cached(id)).isEmpty();
+    }
+    @Test void concurrentHintRequestsMakeOneProviderCall() throws Exception {
+        long id=gradedSubmission();when(scanner.scan(any())).thenReturn(List.of());scanning.scanNext();
+        var entered=new CountDownLatch(1);var release=new CountDownLatch(1);
+        when(hintProvider.generate(anyString())).thenAnswer(call -> {
+            entered.countDown();
+            if (!release.await(10,TimeUnit.SECONDS)) throw new IllegalStateException("fixture timed out");
+            return new com.digitalgrader.feedback.HintProvider.Reply("Review the assertion.","fixture");
+        });
+        var executor=Executors.newSingleThreadExecutor();
+        try {
+            var first=executor.submit(() -> hint(id,student));
+            assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue();
+            assertThat(hint(id,student).getStatusCode().value()).isEqualTo(409);
+            release.countDown();
+            assertThat(first.get(10,TimeUnit.SECONDS).getStatusCode().value()).isEqualTo(201);
+            verify(hintProvider,times(1)).generate(anyString());
+        } finally { release.countDown();executor.shutdownNow(); }
+    }
+    private long gradedSubmission() throws Exception {
+        long id=accepted(upload(student,archive));
+        when(sandbox.run(any())).thenReturn(new com.digitalgrader.grading.Sandbox.Result(0,"fixture",List.of("<testsuite><testcase name='pass'/></testsuite>"),null,Map.of()));
+        grading.grade(id);return id;
+    }
+    private ResponseEntity<String> hint(long id,User user) {
+        var headers=new HttpHeaders();headers.setBearerAuth(tokens.issue(user));
+        return http.postForEntity("/api/v1/submissions/"+id+"/hint",new HttpEntity<>(headers),String.class);
     }
     private long accepted(ResponseEntity<String> response) throws Exception {
         assertThat(response.getStatusCode().value()).as(response.getBody()).isEqualTo(202);

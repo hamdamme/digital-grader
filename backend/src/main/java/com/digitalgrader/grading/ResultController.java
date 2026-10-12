@@ -18,7 +18,8 @@ public class ResultController {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
     private final StorageService storage;
-    public ResultController(SubmissionService submissions,JdbcTemplate jdbc,ObjectMapper json,StorageService storage) { this.submissions=submissions; this.jdbc=jdbc; this.json=json; this.storage=storage; }
+    private final com.digitalgrader.scanning.ScanRepository scans;
+    public ResultController(SubmissionService submissions,JdbcTemplate jdbc,ObjectMapper json,StorageService storage,com.digitalgrader.scanning.ScanRepository scans) { this.submissions=submissions; this.jdbc=jdbc; this.json=json; this.storage=storage; this.scans=scans; }
     @GetMapping("/{id}/result")
     public Map<String,Object> result(@PathVariable long id,@AuthenticationPrincipal User.Profile user) {
         submissions.get(id,user);
@@ -32,7 +33,9 @@ public class ResultController {
         try { response.put("rubricBreakdown",json.readTree(row.get("rubric_breakdown").toString())); }
         catch (java.io.IOException e) { throw new IllegalStateException("Invalid stored grading result",e); }
         response.put("testCaseResults",jdbc.queryForList("SELECT test_name AS \"testName\",status,duration_ms AS \"durationMs\",error_message AS \"errorMessage\",stack_trace AS \"stackTrace\" FROM test_case_results WHERE grading_result_id=? ORDER BY id",result));
-        response.put("securityFindings",List.of()); response.put("hints",List.of());
+        response.put("securityStatus",scans.status(id));
+        response.put("securityFindings",scans.findings(id));
+        response.put("hints",jdbc.queryForList("SELECT content,model,created_at AS \"createdAt\" FROM hints WHERE submission_id=?",id));
         return response;
     }
     @GetMapping("/{id}/build-log")

@@ -44,6 +44,20 @@ class DockerSandboxTest {
         assertThatThrownBy(() -> sandbox.run(Path.of("/tmp/fixture.zip"))).hasMessage("Docker unavailable");
         verify(docker).run(argThat(a -> a.get(1).equals("rm") && a.contains("--force")),any(),anyInt());
     }
+    @Test void mountsReferenceDataReadOnlyInsideTheSameIsolationBoundary() throws Exception {
+        Path database=java.nio.file.Files.createTempDirectory("reference-fixture-");
+        try {
+            var docker=mock(DockerCommand.class);
+            when(docker.run(anyList(),any(),anyInt())).thenAnswer(call -> {
+                List<String> args=call.getArgument(0);
+                return new DockerCommand.Output(0,args.get(1).equals("info")?"{\"runsc\":{}}":"sha256:"+"a".repeat(64));
+            });
+            var sandbox=new DockerSandbox(docker,new ObjectMapper(),"fixture",30,4096,1,database);
+            sandbox.verifyReady();
+            var args=sandbox.command("fixture",Path.of("/tmp/input.zip"));
+            assertThat(args).contains("type=bind,src="+database+",dst=/input/reference-data,readonly","--network=none","--runtime=runsc");
+        } finally { java.nio.file.Files.delete(database); }
+    }
     @Test void rejectsUnsafeLimits() {
         var docker=mock(DockerCommand.class);
         assertThatThrownBy(() -> new DockerSandbox(docker,new ObjectMapper(),"--privileged",30,1536,1)).isInstanceOf(IllegalArgumentException.class);

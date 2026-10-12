@@ -23,3 +23,17 @@ jobs:
         run: docker build -t digital-grader-minio:2025-10-15 infra/minio
       - name: Unit and PostgreSQL, MinIO, RabbitMQ integration tests
         run: mvn --batch-mode --no-transfer-progress -f backend/pom.xml verify
+
+  scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build security tools
+        run: docker build -f sandbox/Dockerfile.security -t digital-grader-security:session7 sandbox
+      - name: Check trusted scanner fixtures
+        run: >-
+          docker run --rm --network=none --read-only
+          --tmpfs /tmp:rw,nosuid,nodev,size=256m
+          --tmpfs /code:rw,nosuid,nodev,size=256m,uid=10001,gid=10001
+          --entrypoint python3 digital-grader-security:session7
+          -I /opt/digital-grader/test_security_rules.py

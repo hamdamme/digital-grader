@@ -19,7 +19,7 @@ class DockerSandboxTest {
                 default -> new DockerCommand.Output(0,"");
             };
         });
-        var sandbox=new DockerSandbox(docker,new ObjectMapper(),"digital-grader-student:session6",30,1536,1);
+        var sandbox=new DockerSandbox(docker,new ObjectMapper(),"digital-grader-student:local",30,1536,1);
         sandbox.verifyReady();
         var args=sandbox.command("fixture",Path.of("/tmp/fixture.zip"));
         assertThat(args).contains("--runtime=runsc","--network=none","--read-only","--cap-drop=ALL","--security-opt=no-new-privileges","--user=10001:10001","--pids-limit=256","--memory=1536m","--memory-swap=1536m","--cpus=1.0");
@@ -39,7 +39,7 @@ class DockerSandboxTest {
                 default -> new DockerCommand.Output(0,"");
             };
         });
-        var sandbox=new DockerSandbox(docker,new ObjectMapper(),"digital-grader-student:session6",30,1536,1);
+        var sandbox=new DockerSandbox(docker,new ObjectMapper(),"digital-grader-student:local",30,1536,1);
         sandbox.verifyReady();
         assertThatThrownBy(() -> sandbox.run(Path.of("/tmp/fixture.zip"))).hasMessage("Docker unavailable");
         verify(docker).run(argThat(a -> a.get(1).equals("rm") && a.contains("--force")),any(),anyInt());

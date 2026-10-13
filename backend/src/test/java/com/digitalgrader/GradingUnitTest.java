@@ -40,7 +40,7 @@ class GradingUnitTest {
     @Test void refusesToRunWithoutGvisor() {
         var docker=mock(DockerCommand.class);
         when(docker.run(anyList(),any(),anyInt())).thenReturn(new DockerCommand.Output(0,"{\"runc\":{}}"));
-        var sandbox=new DockerSandbox(docker,new ObjectMapper(),"digital-grader-student:session6",30,1536,1);
+        var sandbox=new DockerSandbox(docker,new ObjectMapper(),"digital-grader-student:local",30,1536,1);
         assertThatThrownBy(sandbox::verifyReady).hasMessageContaining("runsc");
         assertThatThrownBy(() -> sandbox.run(java.nio.file.Path.of("fixture.zip"))).hasMessageContaining("readiness");
         verify(docker,times(1)).run(anyList(),any(),anyInt());

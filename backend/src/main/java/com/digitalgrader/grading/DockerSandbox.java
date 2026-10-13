@@ -17,7 +17,7 @@ public class DockerSandbox implements Sandbox {
     private volatile String imageId;
     private Path referenceData;
     @org.springframework.beans.factory.annotation.Autowired
-    public DockerSandbox(DockerCommand docker,ObjectMapper json,@Value("${SANDBOX_IMAGE:digital-grader-student:session6}") String image,
+    public DockerSandbox(DockerCommand docker,ObjectMapper json,@Value("${SANDBOX_IMAGE:digital-grader-student:local}") String image,
             @Value("${SANDBOX_TIMEOUT_SECONDS:600}") int timeout,@Value("${SANDBOX_MEMORY_MB:1536}") int memory,
             @Value("${SANDBOX_CPU_LIMIT:1}") double cpu) {
         if (!image.matches("[a-zA-Z0-9][a-zA-Z0-9._/@:-]*") || timeout<5 || timeout>600 || memory<512 || memory>4096 || !Double.isFinite(cpu) || cpu<0.25 || cpu>4)

@@ -14,7 +14,7 @@ class SecurityAcceptanceTest {
     @Test void scansARealArchiveWithoutExecutingItsCode() throws Exception {
         String database=System.getenv("SECURITY_DATABASE_PATH");
         assertThat(database).as("Set SECURITY_DATABASE_PATH to a current vulnerability snapshot").isNotBlank();
-        var scanner=new DockerSecurityScanner(new DockerCommand(),new ObjectMapper(),"digital-grader-security:session7",database);
+        var scanner=new DockerSecurityScanner(new DockerCommand(),new ObjectMapper(),"digital-grader-security:local",database);
         scanner.verifyReady();
         Path zip=temp.resolve("fixture.zip");
         try (var out=new ZipOutputStream(Files.newOutputStream(zip))) {

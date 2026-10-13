@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.*;
 class SandboxAcceptanceTest {
     @TempDir Path temp;
     @Test void runsSampleOfflineWithCoverageAndFailureReports() throws Exception {
-        var sandbox=new DockerSandbox(new DockerCommand(),new ObjectMapper(),"digital-grader-student:session6",180,1536,1);
+        var sandbox=new DockerSandbox(new DockerCommand(),new ObjectMapper(),"digital-grader-student:local",180,1536,1);
         sandbox.verifyReady();
         var result=sandbox.run(archive(false));
         assertThat(result.exitCode()).as(result.log()).isEqualTo(1);
@@ -24,7 +24,7 @@ class SandboxAcceptanceTest {
         assertThat(result.quality()).containsKeys("checkstyle","spotbugs");
     }
     @Test void terminatesHangingProject() throws Exception {
-        var sandbox=new DockerSandbox(new DockerCommand(),new ObjectMapper(),"digital-grader-student:session6",15,1536,1);
+        var sandbox=new DockerSandbox(new DockerCommand(),new ObjectMapper(),"digital-grader-student:local",15,1536,1);
         sandbox.verifyReady();
         assertThat(sandbox.run(archive(true)).exitCode()).isEqualTo(124);
     }

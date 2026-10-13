@@ -29,11 +29,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build security tools
-        run: docker build -f sandbox/Dockerfile.security -t digital-grader-security:session7 sandbox
+        run: docker build -f sandbox/Dockerfile.security -t digital-grader-security:local sandbox
       - name: Check trusted scanner fixtures
         run: >-
           docker run --rm --network=none --read-only
           --tmpfs /tmp:rw,nosuid,nodev,size=256m
           --tmpfs /code:rw,nosuid,nodev,size=256m,uid=10001,gid=10001
-          --entrypoint python3 digital-grader-security:session7
+          --entrypoint python3 digital-grader-security:local
           -I /opt/digital-grader/test_security_rules.py

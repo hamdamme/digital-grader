@@ -13,7 +13,7 @@ public class DockerSecurityScanner implements SecurityScanner {
     private final ObjectMapper json;
     private final Path database;
     public DockerSecurityScanner(DockerCommand command,ObjectMapper json,
-            @Value("${SECURITY_IMAGE:digital-grader-security:session7}") String image,
+            @Value("${SECURITY_IMAGE:digital-grader-security:local}") String image,
             @Value("${SECURITY_DATABASE_PATH:}") String database) {
         this.json=json;
         this.database=Path.of(database.isBlank()?"missing-security-database":database);

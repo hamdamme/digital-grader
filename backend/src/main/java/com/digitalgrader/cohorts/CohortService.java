@@ -39,7 +39,12 @@ public class CohortService {
         for (long studentId : ids) jdbc.update("INSERT INTO cohort_members(cohort_id,student_id) VALUES (?,?) ON CONFLICT DO NOTHING", id, studentId);
     }
     public List<Summary> mine(User.Profile user) {
-        return jdbc.query("SELECT c.*, (SELECT count(*) FROM cohort_members m WHERE m.cohort_id=c.id) AS student_count FROM cohorts c WHERE instructor_id=? ORDER BY c.id",
+        String scope = switch (user.role()) {
+            case STUDENT -> "EXISTS (SELECT 1 FROM cohort_members m WHERE m.cohort_id=c.id AND m.student_id=?)";
+            case INSTRUCTOR -> "c.instructor_id=?";
+            case ADMIN -> "? > 0";
+        };
+        return jdbc.query("SELECT c.*, (SELECT count(*) FROM cohort_members m WHERE m.cohort_id=c.id) AS student_count FROM cohorts c WHERE " + scope + " ORDER BY c.id",
                 (row, i) -> new Summary(row.getLong("id"), row.getString("name"), row.getObject("start_date", LocalDate.class), row.getObject("end_date", LocalDate.class), row.getInt("student_count")), user.id());
     }
     @Transactional(readOnly=true)

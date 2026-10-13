@@ -147,7 +147,8 @@ class AuthIntegrationTest {
     }
     @Test void studentCannotUseTeacherOrAdminEndpoints() {
         String token = tokens.issue(fixture("student@fixture.local", Role.STUDENT));
-        assertThat(get("/cohorts/mine", token).getStatusCode().value()).isEqualTo(403);
+        assertThat(get("/cohorts/mine", token).getStatusCode().value()).isEqualTo(200);
+        assertThat(get("/cohorts/mine", token).getBody()).isEqualTo("[]");
         assertThat(request(HttpMethod.POST, "/cohorts", Map.of(), token).getStatusCode().value()).isEqualTo(403);
         assertThat(request(HttpMethod.POST, "/admin/users", registration("teacher@fixture.local", "INSTRUCTOR"), token).getStatusCode().value()).isEqualTo(403);
     }

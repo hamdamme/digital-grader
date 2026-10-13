@@ -1,6 +1,6 @@
 # Technical decisions
 
-This document records the current implementation choices. Planned requirements are in [the specification](docs/BUILD_SPEC.md); delivery status is in [the project checkpoint](docs/HANDOFF.md).
+This document records the current implementation choices. Phase status is in [the roadmap](ROADMAP.md); setup and verification live in [the README](README.md).
 
 ## Interface
 
@@ -34,7 +34,7 @@ Run the worker as a separate process without an HTTP server. Verify runsc and re
 
 Maven runs offline with dependencies cached in the image. The runner emits bounded report JSON before exit; retained Docker logs provide output until explicit container removal. This avoids copying untrusted output directories to the host and supports temporary filesystems that disappear after shutdown. JaCoCo requires both preparation and an explicit report goal.
 
-Atomic claims and tokens prevent stale workers from overwriting newer attempts. Failed tests receive one rerun; a later pass is marked FLAKY and earns no pass credit. Grades and a security outbox record are stored in the same transaction. Security processing belongs to Session 7.
+Atomic claims and tokens prevent stale workers from overwriting newer attempts. Failed tests receive one rerun; a later pass is marked FLAKY and earns no pass credit. Grades and a security outbox record are stored in the same transaction; a separate security worker consumes that outbox.
 
 ## Acceptance boundary
 

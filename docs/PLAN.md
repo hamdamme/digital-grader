@@ -8,12 +8,12 @@ Updated October 12, 2026 (America/Chicago). Eight sessions are a working plan, n
 4. **Complete and merged:** teacher cohort creation/enrollment/read APIs, validated assignments and Swagger documentation.
 5. **Complete and merged:** ZIP validation, MinIO uploads/downloads, durable RabbitMQ dispatch, attempt/deadline checks and status lifecycle; 62 backend tests pass.
 6. **In progress:** isolated grading worker, reports, coverage and scoring implemented; Ubuntu/gVisor acceptance is deferred until a suitable host is ready.
-7. **In progress:** security report mapping, scan worker, result integration and cached hint API implemented locally. Real scanner and provider acceptance remain pending; see SESSION_7.md.
-8. Integration/release preparation: dashboards, overrides, end-to-end tests, CI and reproducible setup.
+7. **In progress:** security report mapping, scan worker, result integration and cached hint API implemented and pushed with passing CI. Real scanner and provider acceptance remain pending; see SESSION_7.md.
+8. **In progress:** connected dashboards, uploads, result views, instructor overrides and disposable browser workflow implemented and verified locally. Remote CI and release acceptance remain pending.
 
 ## Current stop point
 
-Five of eight sessions are complete. Sessions 3–5 were delivered through merged PR #3 and successful backend CI. Session 6 has local implementation and Docker-backed pipeline tests, but no verified real runsc execution yet. See SESSION_6.md for setup, acceptance requirements and limitations. Frontend pages still use sample data.
+Five of eight sessions are complete. Sessions 3–5 were delivered through merged PR #3 and successful backend CI. Session 6 has local implementation and Docker-backed pipeline tests, but no verified real runsc execution yet. See SESSION_6.md for setup, acceptance requirements and limitations. The default frontend now calls the API. Labeled sample pages remain available under demo routes. See SESSION_8.md for verification and release limits.
 
 ## Commit discipline
 

@@ -6,7 +6,7 @@ Grading and security feedback for students learning Java test automation.
 
 The backend implements authentication, cohort and assignment management, validated ZIP uploads, private storage and queue dispatch. A grading worker, report parsing, scoring and result APIs are implemented locally. Real sandbox acceptance on Linux remains pending.
 
-The React frontend is a prototype using sample data. It does not upload submissions to the API or display real grades. Security processing and cached AI hints are implemented locally, with runtime and provider acceptance pending. Frontend integration is planned. See [project status](docs/HANDOFF.md) for completed milestones, recorded verification and remaining work.
+The React frontend connects to the API for classroom setup, uploads, results and instructor reviews. A separate demo area contains labeled sample data. Security processing and cached AI hints are implemented, with runtime and provider acceptance pending. See [project status](docs/HANDOFF.md) for verification and remaining work, or [Project Overview](docs/PROJECT_OVERVIEW.md) for a presentation of the product.
 
 ## Local setup
 
@@ -34,7 +34,7 @@ npm run dev
 
 Open http://127.0.0.1:5176. To inspect a production build locally, use `npm run build` followed by `npm run preview`, then open http://127.0.0.1:5175.
 
-Frontend file selection remains local and simulated results do not analyze the selected project. Reloading discards local interaction state. Real API submissions remain queued unless a supported worker is running. See [worker setup](docs/SESSION_6.md) for Linux and gVisor requirements.
+Sign in to use the connected workspace, or open `/#/demo/studio` for the sample design. Student registration is available in the interface; instructor accounts require administrator provisioning. Sessions stay in memory, so reloading requires sign-in. Uploads remain queued unless a supported worker is running. See [worker setup](docs/SESSION_6.md) for Linux and gVisor requirements.
 
 ## Verification
 
@@ -57,11 +57,13 @@ Backend integration tests require Docker and use disposable services. The standa
 | `sandbox/` | Grading image, bounded runner and sample Java project |
 | `infra/minio/` | Pinned MinIO source build |
 | `scripts/` | Environment setup and launch scripts |
-| `.github/workflows/` | Backend and frontend checks |
+| `.github/workflows/` | Backend, frontend and browser checks |
 | `docs/` | Requirements, setup guides and milestone records |
 
 ## Documentation
 
+- [Project Overview and Development Report](docs/PROJECT_OVERVIEW.md)
+- [Connected workspace and browser verification](docs/SESSION_8.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Technical decisions](DECISIONS.md)
 - [Project requirements](docs/BUILD_SPEC.md)

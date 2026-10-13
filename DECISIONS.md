@@ -45,3 +45,11 @@ Docker service tests with a substituted sandbox validate orchestration, not gVis
 Consume the existing security outbox directly with database claims instead of introducing another RabbitMQ delivery layer. Track scan state separately so missing or failed scans cannot be presented as clean. Use the existing gVisor execution boundary, an offline vulnerability snapshot and bounded report parsing. Refresh trusted reference data separately without any submission mounts.
 
 Use a configurable Chat Completions provider for compatibility with hosted services and Ollama. Keep generation disabled by default. Send only bounded test evidence and finding locations; source excerpts are deferred. Persist one hint per submission with a unique constraint and expiring claims. Enforce output size and simple code rejection, while documenting that these checks do not guarantee tutoring quality or prevent every solution disclosure.
+
+## Connected workspace
+
+Keep sample pages under explicit demo routes. Use the API as the source of truth for uploads, scores and status. Store browser tokens only in memory for this development stage; page reloads require sign-in. Share refresh requests and cancel reads when their view changes. Use a local development proxy and an explicit production API route.
+
+Append instructor score changes rather than replacing automated results. Lock the result and check the expected score before saving an override. Include a reason and expose review history to the submission owner. Browser workflow tests use disposable services, with stored report fixtures for review; they do not replace real sandbox acceptance.
+
+Use native SVG for small submission trend charts and accessible meter bars for CWE counts. Keep text values available. Student trends use only authorized submission rows; instructor summaries are aggregated in PostgreSQL. Pending scans remain missing measurements. Finding fix rates need a stable identity comparison and are not inferred from a reduction in total counts.

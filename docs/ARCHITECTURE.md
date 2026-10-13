@@ -4,7 +4,7 @@
 
 | Component | Responsibility | Current status |
 |---|---|---|
-| React frontend | Teacher and student workspaces | Demonstration data; API integration pending |
+| React frontend | Teacher and student workspaces | Connected API workflows; separate demo routes |
 | Spring Boot API | Authentication, cohorts, assignments, uploads and result access | Implemented |
 | PostgreSQL | Application records, grading claims and outbox entries | Integrated |
 | MinIO | Private submissions and grading artifacts | Integrated for local development |
@@ -24,8 +24,10 @@
 7. The worker parses bounded reports, performs an optional rerun, and calculates rubric scores.
 8. A transaction stores the result, completes the submission and records pending security work.
 9. Authorized users can request results and a temporary build log download URL.
+10. Security processing records findings independently; optional hints use bounded evidence.
+11. Instructors can append score overrides with reasons while preserving the automated grade.
 
-Steps involving actual student execution still require acceptance on Linux. Frontend demonstration flows do not call this pipeline.
+Steps involving actual student execution still require acceptance on Linux. The connected frontend uploads and reads this pipeline. Separate demo routes use sample data.
 
 ## Failure handling
 

@@ -13,22 +13,22 @@ Updated October 12, 2026. This file is the current checkpoint; session documents
 | 5 | ZIP uploads, private storage and queue dispatch | Complete; merged through PR #3 |
 | 6 | Grading worker, report parsing, scoring and result APIs | Implemented locally; Linux acceptance pending |
 | 7 | Security scans and AI guidance | Implemented locally; runtime and provider acceptance pending |
-| 8 | Frontend integration and release preparation | Planned |
+| 8 | Frontend integration and release preparation | Connected workspace verified locally; release acceptance pending |
 
 Digital Grader is the current project name. The repository and local folder rename are complete. Existing data compatibility settings are described in [Renaming](RENAMING.md).
 
 ## Verification
 
-Validation on October 12 passed 94 backend tests, three ZIP extraction tests and three scanner smoke tests. Maven verify and the security image build succeeded. Backend integration tests used disposable PostgreSQL, RabbitMQ and MinIO containers; provider tests used a local HTTP fixture. Grading orchestration substituted the sandbox. The previous frontend validation passed 13 tests and a production build on October 10; frontend code was unchanged this session.
+Validation on October 12 passed 99 backend tests and 24 frontend tests. Maven verify and the frontend production build succeeded. The browser workflow passed against disposable services for registration, classroom setup, uploads, lists and score overrides. Browser result review used stored report fixtures; no submitted code ran. The previous three ZIP extraction and three scanner smoke tests passed during Session 7.
 
 The three real gVisor acceptance tests (two grading and one security) have not run. Ubuntu setup is deferred until a suitable host is ready. Session 6 remains incomplete; successful ordinary tests do not establish containment or real grading behavior.
 
 ## Current behavior
 
-The frontend uses sample data and is not connected to the API. Backend uploads are real, but remain queued unless a worker is running on a supported host. The worker requires runsc and refuses to substitute another runtime. Security processing and an optional hint provider are implemented locally; runtime acceptance is pending and hint generation is disabled by default. Student reports are not yet authoritative assessment evidence; a test harness controlled by instructors remains a release requirement.
+The default frontend connects to the API for accounts, classroom setup, uploads, result views and instructor overrides. Sample data is isolated under the demo routes. Uploads remain queued unless a worker is running on a supported host. The worker requires runsc and refuses to substitute another runtime. Security processing and an optional hint provider are implemented locally; runtime acceptance is pending and hint generation is disabled by default. Student reports are not yet authoritative assessment evidence; a test harness controlled by instructors remains a release requirement.
 
 ## Next work
 
-Session 7 adds a security image, durable scan claims, findings in result responses and cached tutoring hints. See [Session 7](SESSION_7.md) for configuration, data transfer behavior and acceptance limits. The Ubuntu host, vulnerability snapshot and live provider checks remain deferred. Frontend integration is still planned for Session 8.
+Session 8 adds the connected workspace and persistent score reviews. See [Session 8](SESSION_8.md) for setup and verification, and [Project Overview](PROJECT_OVERVIEW.md) for presentation material. Ubuntu, vulnerability snapshot and live provider acceptance remain deferred.
 
-The current branch is `session-7/security-feedback`, based on the pushed Session 6 branch. The previous [backend CI run](https://github.com/hamdamme/digital-grader/actions/runs/38173723914) passed at commit b52db27. Session 7 changes have not been pushed or checked by remote CI. Five sessions are complete; Sessions 6 and 7 retain outstanding acceptance work.
+The current branch is `session-8/frontend-integration`, based on the pushed Session 7 branch. [Session 7 backend and scanner CI](https://github.com/hamdamme/digital-grader/actions/runs/38298745556) passed at commit 9870535. Session 8 has not been pushed or checked by remote CI. Five sessions are fully complete; Sessions 6–8 retain runtime or release acceptance work. Next: push Session 8, verify CI, and review the branch before merging.

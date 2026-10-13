@@ -131,7 +131,7 @@ export function AssignmentsPage() {
               Expected IllegalArgumentException; received NullPointerException.
             </p>
           </div>
-          <Link className="button secondary" to="/results">
+          <Link className="button secondary" to="/demo/results">
             Open full report
           </Link>
           <p className="notice">Sample feedback · Oct 2, 2026</p>

@@ -30,12 +30,12 @@ export function ReviewPage() {
     return (
       <>
         <h1>Submission not found</h1>
-        <Link to="/studio">Return to overview</Link>
+        <Link to="/demo/studio">Return to overview</Link>
       </>
     );
   return (
     <>
-      <Link className="studio-back" to="/studio">
+      <Link className="studio-back" to="/demo/studio">
         ‹ Back to overview
       </Link>
       <div className="studio-page-heading review-page-heading">

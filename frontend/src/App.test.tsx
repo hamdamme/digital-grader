@@ -1,14 +1,16 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { App } from "./App";
+import { DemoApp as App } from "./DemoApp";
 import { MAX_ZIP_BYTES, validateSubmission } from "./lib/submission";
 
 function renderAt(path: string) {
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <App />
+    <MemoryRouter initialEntries={["/demo" + path]}>
+      <Routes>
+        <Route path="demo/*" element={<App />} />
+      </Routes>
     </MemoryRouter>,
   );
 }

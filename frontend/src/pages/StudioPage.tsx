@@ -36,7 +36,7 @@ export function StudioPage() {
           <span>UP NEXT</span>
           <strong>Selenium Login Test</strong>
           <p>Due October 8</p>
-          <Link to="/assignments">View student assignments</Link>
+          <Link to="/demo/assignments">View student assignments</Link>
         </div>
       </section>
       <div className="studio-metrics">
@@ -116,7 +116,7 @@ export function StudioPage() {
                   </strong>
                   <span>{r.passed}/10 tests passed</span>
                 </div>
-                <Link className="studio-button" to={`/review/${r.id}`}>
+                <Link className="studio-button" to={`/demo/review/${r.id}`}>
                   Review<span className="sr-only"> {r.name}</span>
                 </Link>
               </article>

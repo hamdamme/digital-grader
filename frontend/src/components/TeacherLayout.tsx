@@ -20,15 +20,15 @@ export function TeacherLayout() {
         Skip to content
       </a>
       <aside className="studio-sidebar">
-        <Link className="studio-brand" to="/studio">
+        <Link className="studio-brand" to="/demo/studio">
           <span>DG</span>Digital Grader
         </Link>
         <p className="studio-nav-label">INSTRUCTOR WORKSPACE</p>
         <nav aria-label="Teacher navigation">
-          <NavLink to="/studio">
+          <NavLink to="/demo/studio">
             <span aria-hidden="true">▦</span> Overview
           </NavLink>
-          <NavLink to="/review/demo-003">
+          <NavLink to="/demo/review/demo-003">
             <span aria-hidden="true">☷</span> Submission review <small>2</small>
           </NavLink>
         </nav>
@@ -39,7 +39,7 @@ export function TeacherLayout() {
           <span className="studio-pill">Fall 2026</span>
         </div>
         <div className="studio-bottom">
-          <Link to="/assignments">Open student preview</Link>
+          <Link to="/demo/assignments">Open student preview</Link>
           <div className="teacher-profile">
             <span>IN</span>
             <div>

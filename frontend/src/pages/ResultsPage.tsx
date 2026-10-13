@@ -26,7 +26,7 @@ export function ResultsPage() {
   const simulation = params.get("simulation") === "1";
   return (
     <>
-      <Link className="back" to="/assignments">
+      <Link className="back" to="/demo/assignments">
         ‹ All assignments
       </Link>
       <Heading

@@ -52,7 +52,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 23px;
+  font-size: 19px;
   font-weight: 650;
   color: white;
   letter-spacing: -0.5px;
@@ -63,9 +63,10 @@ button:disabled {
   place-items: center;
   width: 31px;
   height: 31px;
+  flex-shrink: 0;
   background: #3069ee;
   border-radius: 5px;
-  font-size: 23px;
+  font-size: 13px;
 }
 .workspace-label {
   font-size: 11px;

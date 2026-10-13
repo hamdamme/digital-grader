@@ -12,7 +12,7 @@ export function Layout() {
     }
     main.current?.focus();
   }, [location.pathname]);
-  const page = location.pathname.split("/")[1];
+  const page = location.pathname.split("/")[2];
   const labels: Record<string, string> = {
     assignments: "Assignments",
     submit: "Submit project",
@@ -33,30 +33,30 @@ export function Layout() {
         Skip to content
       </a>
       <aside className="sidebar">
-        <Link className="brand" to="/assignments">
-          <span className="brand-icon">G</span>Gradely
+        <Link className="brand" to="/demo/assignments">
+          <span className="brand-icon">DG</span>Digital Grader
         </Link>
         <Link
           className="back"
           style={{ margin: "24px 12px 0", color: "#afc8ff" }}
-          to="/studio"
+          to="/demo/studio"
         >
           ‹ Teacher studio
         </Link>
         <div className="workspace-label">STUDENT WORKSPACE</div>
         <nav aria-label="Main navigation">
           <NavLink
-            to="/assignments"
+            to="/demo/assignments"
             className={({ isActive }) =>
               isActive || page === "submit" ? "active" : ""
             }
           >
             <span aria-hidden="true">▦</span>Assignments <small>3</small>
           </NavLink>
-          <NavLink to="/progress">
+          <NavLink to="/demo/progress">
             <span aria-hidden="true">↗</span>My progress
           </NavLink>
-          <NavLink to="/results">
+          <NavLink to="/demo/results">
             <span aria-hidden="true">≡</span>Latest feedback
           </NavLink>
         </nav>
@@ -89,7 +89,7 @@ export function Layout() {
           <Outlet />
         </main>
         <footer>
-          Gradely · Student workspace
+          Digital Grader · Student workspace
           <span>Local prototype · No code is executed</span>
         </footer>
       </div>

@@ -26,3 +26,10 @@ __pycache__/
 .sites-runtime/
 .data/
 uploads/
+
+# Local R session history
+.Rhistory
+
+# Local working folders (not part of the repository)
+gradely_mindtek/
+recent_completed_developments/

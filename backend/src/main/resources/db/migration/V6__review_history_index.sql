@@ -1,0 +1,1 @@
+CREATE INDEX instructor_overrides_result_order ON instructor_overrides(grading_result_id,id DESC);

@@ -1,0 +1,16 @@
+FROM eclipse-temurin:21-jre-jammy
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv curl unzip \
+    && rm -rf /var/lib/apt/lists/*
+RUN python3 -m venv /opt/scanner && /opt/scanner/bin/pip install --no-cache-dir semgrep==1.180.0
+RUN curl -fsSL https://github.com/dependency-check/DependencyCheck/releases/download/v13.0.0/dependency-check-13.0.0-release.zip -o /tmp/dc.zip \
+    && echo '44d920d1ec03e948df862a253f0912782a31b9beee8a7c8895b9cb95760176ed  /tmp/dc.zip' | sha256sum -c - \
+    && unzip -q /tmp/dc.zip -d /opt && rm /tmp/dc.zip
+COPY run-grading.py /opt/digital-grader/run-grading.py
+COPY run-security.py /opt/digital-grader/run-security.py
+COPY semgrep-rules /rules
+COPY update-security-db.py /opt/digital-grader/update-security-db.py
+COPY test_security_rules.py /opt/digital-grader/test_security_rules.py
+RUN mkdir /input /code /output && chmod -R a+rX /rules /opt/digital-grader /opt/dependency-check
+ENV HOME=/code SEMGREP_SEND_METRICS=off SEMGREP_ENABLE_VERSION_CHECK=0 JAVA_TOOL_OPTIONS=-Xmx1024m
+USER 10001:10001
+ENTRYPOINT ["python3", "-I", "/opt/digital-grader/run-security.py"]

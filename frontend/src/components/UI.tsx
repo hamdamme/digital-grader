@@ -56,7 +56,7 @@ export function NotFound({ assignment = false }: { assignment?: boolean }) {
   return (
     <>
       <h1>{assignment ? "Assignment" : "Page"} not found</h1>
-      <Link className="button" to="/assignments">
+      <Link className="button" to="/demo/assignments">
         Back to assignments
       </Link>
     </>

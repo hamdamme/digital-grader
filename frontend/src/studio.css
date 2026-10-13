@@ -22,7 +22,7 @@
   gap: 11px;
   align-items: center;
   padding: 0 11px;
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 650;
   letter-spacing: -0.5px;
   color: #fff;
@@ -30,13 +30,14 @@
 .studio-brand > span {
   width: 32px;
   height: 32px;
+  flex-shrink: 0;
   display: grid;
   place-items: center;
   background: #3069ee;
   color: white;
   border-radius: 5px;
   font-family: inherit;
-  font-size: 23px;
+  font-size: 13px;
 }
 .studio-nav-label {
   font-size: 11px;
@@ -824,12 +825,12 @@
   }
   .studio-brand {
     padding: 0;
-    font-size: 23px;
+    font-size: 19px;
   }
   .studio-brand > span {
     width: 28px;
     height: 31px;
-    font-size: 23px;
+    font-size: 13px;
   }
   .studio-sidebar > .studio-nav-label,
   .studio-course-label,

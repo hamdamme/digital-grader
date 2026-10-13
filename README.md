@@ -1,83 +1,135 @@
 # Digital Grader
 
-Automated grading and security feedback for Java test-automation students.
+Automated grading and security feedback for students learning Java test automation.
 
-## Current milestone
+## Status
 
-Sessions 4 and 5 are complete locally: teacher cohort/assignment APIs, validated ZIP uploads to MinIO, durable queue dispatch and submission status APIs now join the authentication backend. All 62 backend tests pass with disposable PostgreSQL, MinIO and RabbitMQ containers. Compose runs PostgreSQL, RabbitMQ and MinIO on dedicated loopback ports.
+Implemented: account registration and authentication, cohort and assignment management, validated ZIP submission intake, private object storage with queue dispatch, a sandboxed grading worker with report parsing and scoring, security scanning with optional AI hints, and a React workspace connected to the API. A separate demo area with labeled sample data is included for design review.
 
-The approved React prototype remains unchanged: a teacher overview and split submission review, with sample-data student pages. UI/API integration, grading and AI remain future work. Real API uploads stay QUEUED until Session 6 adds a worker. See [Sessions 4–5](docs/SESSION_4_5.md) for endpoints, upload limits and delivery behavior, and [Session 3](docs/SESSION_3.md) for optional admin setup.
+Pending acceptance: real sandbox execution under gVisor on Linux, a live vulnerability snapshot refresh, and an evaluated hint provider. See [ROADMAP](ROADMAP.md) for phase status and [DECISIONS](DECISIONS.md) for the reasoning behind the main design choices.
 
-## Backend and infrastructure
+## Requirements
 
-Requires Docker with Compose v2, Java 17, Maven 3.9 and Python 3. From the repository root:
+- Docker with Compose v2
+- Java 17 and Maven 3.9
+- Python 3 (environment generation and sandbox helpers only)
+- Node.js 24 LTS (minimum 22.12) for the frontend
+
+## Backend and local services
+
+From the repository root:
 
 ```sh
-python3 scripts/init-dev-env.py   # once; preserves any existing .env
+python3 scripts/init-dev-env.py   # first setup only; preserves an existing .env
 docker compose up -d --build --wait --wait-timeout 180
 ./scripts/backend.sh spring-boot:run
 ```
 
-Then open http://127.0.0.1:8080/api/v1/health. Run `./scripts/backend.sh -B -ntp verify` for backend tests. See [Session 2 setup](docs/SESSION_2.md) for service ports, configuration, source-built MinIO, troubleshooting and stop/restart instructions. The first MinIO build can take several minutes. MinIO is a local compatibility dependency; upstream is archived, so production storage selection remains open.
+`init-dev-env.py` creates a mode-0600 `.env` with random local secrets and refuses to overwrite an existing file. Do not use `.env.example` placeholders as credentials. `backend.sh` loads `.env` and stores Maven downloads under the ignored `.data/` directory; set `JAVA_HOME` to a JDK 17 if it is not detected.
 
-## Run the frontend
+| Service | Local endpoint | Purpose |
+|---|---|---|
+| Backend | http://127.0.0.1:8080/api/v1/health | Application and database health |
+| PostgreSQL | 127.0.0.1:15432 | Application database |
+| RabbitMQ AMQP | 127.0.0.1:5673 | Submission and scan queues |
+| RabbitMQ console | http://127.0.0.1:15673 | Queue administration |
+| MinIO S3 | http://127.0.0.1:19000 | Private submission and report storage |
+| MinIO console | http://127.0.0.1:19001 | Object administration |
 
-Use Node.js 24 LTS (minimum 22.12) and npm.
+All published ports bind to loopback only. Console credentials come from `.env`. The first MinIO build can take several minutes; the local image is built from pinned official source (see `infra/minio/Dockerfile`) and is a development convenience, not a production storage choice.
+
+The health endpoint returns `{"status":"UP"}` only when PostgreSQL responds. API documentation is at http://127.0.0.1:8080/swagger-ui/index.html.
+
+### First administrator
+
+Public registration creates student accounts only. To provision the first administrator, set `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_NAME` and `BOOTSTRAP_ADMIN_PASSWORD` in `.env` and start the backend once; remove those values after the first successful startup. Administrators then create instructor accounts through the API.
+
+### Configuration
+
+`.env.example` lists every setting with notes. Notable groups: database (`DB_*`), broker (`RABBIT_*`), storage (`MINIO_*`), token signing and lifetimes (`JWT_*`), sandbox limits (`SANDBOX_*`) and the optional hint provider (`AI_*`, disabled by default). Missing database settings or a short `JWT_SECRET` fail startup before a connection pool is created.
+
+## Grading worker
+
+The worker is a separate process of the same application that consumes queued submissions and executes them in a gVisor sandbox container. It requires a Linux Docker host with `runsc` installed; the worker and the Docker daemon must share a host filesystem for the input mount.
+
+```sh
+docker build -f sandbox/Dockerfile.student -t digital-grader-student:local sandbox
+./scripts/check-sandbox.sh          # verifies runsc and resolves the image ID
+./scripts/backend.sh spring-boot:run   # API, terminal one
+./scripts/worker.sh                    # worker, terminal two
+```
+
+Sandbox behavior: no network, read-only root filesystem, bounded writable tmpfs, dropped capabilities, no-new-privileges, and PID, CPU, memory and runtime limits. Only the submitted ZIP is mounted, read-only. Maven runs offline against dependencies cached in the image. The API never executes student code.
+
+Optional environment settings: `SANDBOX_IMAGE` (default `digital-grader-student:local`), `SANDBOX_TIMEOUT_SECONDS` (default 600), `SANDBOX_MEMORY_MB` (default 1536), `SANDBOX_CPU_LIMIT` (default 1).
+
+gVisor setup: https://gvisor.dev/docs/user_guide/quick_start/docker/
+
+## Security worker and hints
+
+A second worker consumes completed grades and runs offline security scans against a pinned vulnerability snapshot:
+
+```sh
+docker build -f sandbox/Dockerfile.security -t digital-grader-security:local sandbox
+scripts/update-security-db.sh /path/to/vulnerability-snapshot   # refresh pinned data
+./scripts/security-worker.sh
+```
+
+AI hints are disabled by default. When enabled (`AI_ENABLED=true`), hint requests send bounded test evidence and finding locations to the configured Chat Completions compatible provider; source excerpts are not transmitted. See `.env.example` for provider settings.
+
+## Frontend
 
 ```sh
 cd frontend
 npm ci
-npm run dev
+npm run dev        # http://127.0.0.1:5176
+npm test           # component and lifecycle checks
+npm run build      # strict type check and production build
+npm run preview    # preview the build at http://127.0.0.1:5175
 ```
 
-Open http://127.0.0.1:5176. The server binds to loopback and fails clearly if its port is occupied. The earlier Python preview is obsolete; it cannot serve React source files.
+Sign in to use the connected workspace, or open `/#/demo/studio` for the sample design. Browser tokens are held in memory, so reloading requires sign-in. The demo area is labeled sample data and performs no real uploads or grading.
+
+## Verification
 
 ```sh
-npm test          # component and submission lifecycle checks
-npm run build    # strict TypeScript check plus production build
-npm run preview  # preview the build at http://127.0.0.1:5175
+./scripts/backend.sh -B -ntp verify   # unit and integration tests, needs Docker
+python3 sandbox/test_extraction.py
+python3 sandbox/test_security_rules.py
+cd frontend && npm test && npm run build
 ```
 
-All file selection is local. No ZIP bytes are uploaded or executed. Simulated submissions show the same labeled Java Fundamentals sample report, not an analysis of the selected project. Reloading discards local interaction state.
+Backend integration tests run against disposable PostgreSQL, MinIO and RabbitMQ containers and substitute the sandbox execution boundary; they validate orchestration, not gVisor containment. Real sandbox acceptance uses the `sandbox` Maven profile on a Linux host with `runsc`:
 
-## Structure
-
-```text
-backend/             Spring Boot application, Flyway migrations and tests
-scripts/             Environment generation and Java 17 Maven launcher
-infra/minio/         Pinned official MinIO source build
-docker-compose.yml   Local PostgreSQL, RabbitMQ and MinIO
-frontend/
-  src/
-    components/   Shared shell and visual components
-    data/         Typed demo fixtures
-    lib/          File-selection validation
-    pages/        Assignments, submission, results, progress
-    App.tsx       Routes, including not-found handling
-    App.test.tsx  Submission lifecycle and interaction checks
-  public/         Static assets
-  package-lock.json
-.github/workflows/frontend.yml
-  npm ci -> tests -> typecheck + build -> dependency audit
-
-docs/BUILD_SPEC.md  Original requirements, preserved verbatim
-DECISIONS.md       Scope and technology decisions
-docs/PLAN.md       Working schedule
-docs/HANDOFF.md    Verified status and next session
+```sh
+./scripts/backend.sh -B -ntp -Psandbox test
 ```
 
-## Development workflow
+GitHub Actions check backend, frontend and browser workflows on changes. A successful local run does not establish remote CI success.
 
-Use short-lived feature branches and commits that represent coherent changes. Record meaningful decisions, run relevant checks, and keep the lockfile committed. Do not commit credentials, dependency folders, build output, or student submissions. CI is configured for frontend changes; a successful local run does not imply a GitHub Actions run has occurred.
+## Project structure
 
-The prototype keeps React 18. Patched Vite, Router, Vitest, and compatible TypeScript versions supersede the older build-spec versions; exact installed versions are pinned in package.json and package-lock.json. The visual design and Java/Spring target remain unchanged. Tailwind, charts and frontend API/authentication integration are deferred until needed for the next implementation slices.
+| Path | Contents |
+|---|---|
+| `backend/` | Spring Boot API, worker entry points, migrations and tests |
+| `frontend/` | React pages, shared components and demonstration fixtures |
+| `sandbox/` | Grading and security images, bounded runners, sample project |
+| `infra/minio/` | Pinned MinIO source build |
+| `scripts/` | Environment setup, launch and verification scripts |
+| `.github/workflows/` | Backend, frontend and browser checks |
 
-## GitHub
+## Documentation
 
-Public repository: https://github.com/hamdamme/digital-grader. Session 1 is published on main and its frontend workflow passed. Session 2 was merged through PR #1 and its backend CI passed. Sessions 3–5 are verified locally on `session-4-5/teacher-submissions`; publishing/review and remote CI verification remain pending.
+- [Roadmap and phase status](ROADMAP.md)
+- [Technical decisions](DECISIONS.md)
+- [Third-party licenses](THIRD_PARTY.md)
 
-[Frontend Actions run verified at session start](https://github.com/hamdamme/digiatl-grader/actions/runs/37161397951).
+## Development
+
+Use focused branches and commits that describe concrete changes. Run checks relevant to each change and record unresolved acceptance work. Keep credentials, dependencies, generated output and student submissions out of Git.
+
+Public repository: [hamdamme/digital-grader](https://github.com/hamdamme/digital-grader).
 
 ## License
 
-MIT — see LICENSE.
+MIT — see [LICENSE](LICENSE). Dependencies retain their own licenses; see [third party notices](THIRD_PARTY.md).

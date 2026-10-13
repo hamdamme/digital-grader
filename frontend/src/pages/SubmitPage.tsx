@@ -19,7 +19,7 @@ export function SubmitPage() {
     const timer = window.setTimeout(
       () => {
         if (phase === "queued") setPhase("running");
-        else navigate("/results?simulation=1");
+        else navigate("/demo/results?simulation=1");
       },
       phase === "queued" ? 800 : 1100,
     );
@@ -37,7 +37,7 @@ export function SubmitPage() {
   if (!assignment) return <NotFound assignment />;
   return (
     <>
-      <Link className="back" to="/assignments">
+      <Link className="back" to="/demo/assignments">
         ‹ All assignments
       </Link>
       <Heading

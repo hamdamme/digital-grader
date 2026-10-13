@@ -295,6 +295,89 @@ class SubmissionIntegrationTest {
             verify(hintProvider,times(1)).generate(anyString());
         } finally { release.countDown();executor.shutdownNow(); }
     }
+    @Test void workspaceListsOnlyAccessibleCohortsAndSubmissions() throws Exception {
+        long mine=accepted(upload(student,archive));
+        long peer=accepted(upload(other,archive));
+        long cohort=jdbc.queryForObject("SELECT cohort_id FROM assignments WHERE id=?",Long.class,assignment);
+        assertThat(json.readTree(get("/cohorts/mine",student).getBody()).get(0).get("id").asLong()).isEqualTo(cohort);
+        assertThat(get("/cohorts/"+cohort,student).getStatusCode().value()).isEqualTo(403);
+        var own=json.readTree(get("/submissions?cohortId="+cohort,student).getBody());
+        assertThat(own.size()).isEqualTo(1); assertThat(own.get(0).get("id").asLong()).isEqualTo(mine);
+        assertThat(json.readTree(get("/submissions?cohortId="+cohort,teacher).getBody()).size()).isEqualTo(2);
+        var stranger=users.create("outside@fixture.local","unused","Outside",Role.INSTRUCTOR);
+        assertThat(get("/cohorts/mine",stranger).getBody()).isEqualTo("[]");
+        assertThat(get("/submissions?cohortId="+cohort,stranger).getStatusCode().value()).isEqualTo(403);
+        jdbc.update("DELETE FROM cohort_members WHERE student_id=?",other.id());
+        assertThat(get("/cohorts/mine",other).getBody()).isEqualTo("[]");
+        assertThat(get("/submissions?cohortId="+cohort,other).getStatusCode().value()).isEqualTo(403);
+        assertThat(peer).isNotEqualTo(mine);
+    }
+    @Test void overridePreservesAutomatedScoreAndRecordsHistory() throws Exception {
+        long id=gradedSubmission();
+        var original=json.readTree(get("/submissions/"+id+"/result",teacher).getBody()).get("score").decimalValue();
+        assertThat(override(id,teacher,91,original,"Reviewed test evidence").getStatusCode().value()).isEqualTo(204);
+        assertThat(override(id,teacher,92,java.math.BigDecimal.valueOf(91),"Corrected the review").getStatusCode().value()).isEqualTo(204);
+        var result=json.readTree(get("/submissions/"+id+"/result",student).getBody());
+        assertThat(result.get("score").decimalValue()).isEqualByComparingTo(original);
+        assertThat(result.get("effectiveScore").asInt()).isEqualTo(92);
+        assertThat(result.get("overrides").size()).isEqualTo(2);
+        assertThat(result.get("overrides").get(0).get("originalScore").asInt()).isEqualTo(91);
+        long cohort=jdbc.queryForObject("SELECT cohort_id FROM assignments WHERE id=?",Long.class,assignment);
+        assertThat(json.readTree(get("/submissions?cohortId="+cohort,student).getBody()).get(0).get("score").asInt()).isEqualTo(92);
+        assertThat(override(id,teacher,99,original,"Stale review").getStatusCode().value()).isEqualTo(409);
+    }
+    @Test void overridesRequireOwnershipValidScoreReasonAndCompletedGrade() throws Exception {
+        long id=accepted(upload(student,archive));
+        assertThat(override(id,teacher,80,java.math.BigDecimal.ZERO,"Waiting").getStatusCode().value()).isEqualTo(409);
+        id=gradedSubmission();
+        assertThat(override(id,student,80,java.math.BigDecimal.ZERO,"Unauthorized").getStatusCode().value()).isEqualTo(403);
+        var stranger=users.create("stranger@fixture.local","unused","Stranger",Role.INSTRUCTOR);
+        assertThat(override(id,stranger,80,java.math.BigDecimal.ZERO,"Unauthorized").getStatusCode().value()).isEqualTo(403);
+        assertThat(override(id,teacher,101,java.math.BigDecimal.ZERO,"Invalid").getStatusCode().value()).isEqualTo(400);
+        assertThat(override(id,teacher,80,java.math.BigDecimal.ZERO,"  ").getStatusCode().value()).isEqualTo(400);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM instructor_overrides",Integer.class)).isZero();
+    }
+    @Test void concurrentScoreChangesRejectStaleReview() throws Exception {
+        long id=gradedSubmission();
+        var original=json.readTree(get("/submissions/"+id+"/result",teacher).getBody()).get("score").decimalValue();
+        var pool=Executors.newFixedThreadPool(2); var start=new CountDownLatch(1);
+        try {
+            var a=pool.submit(() -> { start.await(); return override(id,teacher,91,original,"First review").getStatusCode().value(); });
+            var b=pool.submit(() -> { start.await(); return override(id,teacher,92,original,"Second review").getStatusCode().value(); });
+            start.countDown();
+            assertThat(List.of(a.get(10,TimeUnit.SECONDS),b.get(10,TimeUnit.SECONDS))).containsExactlyInAnyOrder(204,409);
+        } finally { pool.shutdownNow(); }
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM instructor_overrides",Integer.class)).isEqualTo(1);
+    }
+    private ResponseEntity<String> override(long id,User user,int score,java.math.BigDecimal expected,String reason) {
+        var headers=new HttpHeaders();headers.setBearerAuth(tokens.issue(user));
+        return http.postForEntity("/api/v1/submissions/"+id+"/overrides",new HttpEntity<>(Map.of("score",score,"expectedScore",expected,"reason",reason),headers),String.class);
+    }
+    @Test void dashboardAggregatesOverridesCoverageAndCompletedScansWithoutLeakingAccess() throws Exception {
+        long id=gradedSubmission();
+        long cohort=jdbc.queryForObject("SELECT cohort_id FROM assignments WHERE id=?",Long.class,assignment);
+        jdbc.update("UPDATE grading_results SET coverage_line_pct=60 WHERE submission_id=?",id);
+        var score=json.readTree(get("/submissions/"+id+"/result",teacher).getBody()).get("score").decimalValue();
+        assertThat(override(id,teacher,85,score,"Evidence reviewed").getStatusCode().value()).isEqualTo(204);
+        var finding=new com.digitalgrader.scanning.ScanReports.Finding("SEMGREP","fixture","CWE-798","CRITICAL","Config.java",1,"Fixture","Use configuration",null,null,null);
+        when(scanner.scan(any())).thenReturn(List.of(finding)); scanning.scanNext();
+        var rows=json.readTree(get("/cohorts/"+cohort+"/dashboard",teacher).getBody());
+        var own=java.util.stream.StreamSupport.stream(rows.spliterator(),false).filter(r -> r.get("studentId").asLong()==student.id()).findFirst().orElseThrow();
+        assertThat(rows.size()).isEqualTo(2);
+        assertThat(own.get("avgScore").asInt()).isEqualTo(85);
+        assertThat(own.get("avgCoverage").asInt()).isEqualTo(60);
+        assertThat(own.get("totalFindings").asInt()).isEqualTo(1);
+        assertThat(own.get("totalSubmissions").asInt()).isEqualTo(1);
+        var heatmap=json.readTree(get("/cohorts/"+cohort+"/vulnerability-heatmap",teacher).getBody());
+        assertThat(heatmap.get(0).get("cweId").asText()).isEqualTo("CWE-798");
+        assertThat(heatmap.get(0).get("count").asInt()).isEqualTo(1);
+        assertThat(get("/cohorts/"+cohort+"/dashboard",student).getStatusCode().value()).isEqualTo(403);
+        var stranger=users.create("dashboard@fixture.local","unused","Outside",Role.INSTRUCTOR);
+        assertThat(get("/cohorts/"+cohort+"/vulnerability-heatmap",stranger).getStatusCode().value()).isEqualTo(403);
+        jdbc.update("UPDATE security_outbox SET status='FAILED' WHERE submission_id=?",id);
+        assertThat(get("/cohorts/"+cohort+"/vulnerability-heatmap",teacher).getBody()).isEqualTo("[]");
+        assertThat(json.readTree(get("/submissions?cohortId="+cohort,student).getBody()).get(0).get("findingCount").isNull()).isTrue();
+    }
     private long gradedSubmission() throws Exception {
         long id=accepted(upload(student,archive));
         when(sandbox.run(any())).thenReturn(new com.digitalgrader.grading.Sandbox.Result(0,"fixture",List.of("<testsuite><testcase name='pass'/></testsuite>"),null,Map.of()));

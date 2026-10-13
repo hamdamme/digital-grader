@@ -18,8 +18,9 @@ public class ResultController {
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
     private final StorageService storage;
+    private final com.digitalgrader.review.ReviewService reviews;
     private final com.digitalgrader.scanning.ScanRepository scans;
-    public ResultController(SubmissionService submissions,JdbcTemplate jdbc,ObjectMapper json,StorageService storage,com.digitalgrader.scanning.ScanRepository scans) { this.submissions=submissions; this.jdbc=jdbc; this.json=json; this.storage=storage; this.scans=scans; }
+    public ResultController(SubmissionService submissions,JdbcTemplate jdbc,ObjectMapper json,StorageService storage,com.digitalgrader.scanning.ScanRepository scans,com.digitalgrader.review.ReviewService reviews) { this.submissions=submissions; this.jdbc=jdbc; this.json=json; this.storage=storage; this.scans=scans; this.reviews=reviews; }
     @GetMapping("/{id}/result")
     public Map<String,Object> result(@PathVariable long id,@AuthenticationPrincipal User.Profile user) {
         submissions.get(id,user);
@@ -33,6 +34,9 @@ public class ResultController {
         try { response.put("rubricBreakdown",json.readTree(row.get("rubric_breakdown").toString())); }
         catch (java.io.IOException e) { throw new IllegalStateException("Invalid stored grading result",e); }
         response.put("testCaseResults",jdbc.queryForList("SELECT test_name AS \"testName\",status,duration_ms AS \"durationMs\",error_message AS \"errorMessage\",stack_trace AS \"stackTrace\" FROM test_case_results WHERE grading_result_id=? ORDER BY id",result));
+        var overrides=reviews.history(id);
+        response.put("overrides",overrides);
+        response.put("effectiveScore",overrides.isEmpty()?row.get("score"):overrides.get(0).get("score"));
         response.put("securityStatus",scans.status(id));
         response.put("securityFindings",scans.findings(id));
         response.put("hints",jdbc.queryForList("SELECT content,model,created_at AS \"createdAt\" FROM hints WHERE submission_id=?",id));

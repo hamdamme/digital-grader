@@ -4,7 +4,7 @@ This document records the current implementation choices. Phase status is in [th
 
 ## Interface
 
-Use React and TypeScript with HashRouter, shared layout components and separate demonstration fixtures. The workspace has charcoal navigation, blue actions and light content panels. Teacher review and student pages currently use sample data; local interactions reset on reload. This prototype does not represent real grading or stored instructor feedback.
+Use React and TypeScript with HashRouter, shared layout components and separate demonstration fixtures. The workspace has charcoal navigation, blue actions and light content panels. Student and teacher pages use the API as the source of truth for uploads, scores and status. A labeled demo area with sample data remains available for design review; it performs no real uploads or grading.
 
 Use the dependency versions committed in the package manifests and lockfile. The original specification is a planning baseline; its older library versions and deferred UI libraries do not override the implemented dependency set.
 
@@ -38,7 +38,7 @@ Atomic claims and tokens prevent stale workers from overwriting newer attempts. 
 
 ## Acceptance boundary
 
-Docker service tests with a substituted sandbox validate orchestration, not gVisor containment. Real runtime tests and grading through the complete pipeline remain pending on Linux. Student projects can falsify their own reports; trusted tests controlled by instructors are required before using results as authoritative grades.
+Docker service tests with a substituted sandbox validate orchestration, not gVisor containment. Real containment was accepted on 2026-10-15 in a pilot environment, where a submission uploaded through the public HTTPS API was graded end to end on an Ubuntu worker with `runsc`; see the roadmap acceptance notes. Student projects can falsify their own reports; trusted tests controlled by instructors are required before using results as authoritative grades.
 
 ## Security scans and hints
 

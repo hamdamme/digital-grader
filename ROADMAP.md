@@ -15,6 +15,6 @@ Phase status for Digital Grader. Detailed reasoning lives in [DECISIONS](DECISIO
 
 ## Acceptance notes
 
-- Phase 4 real-containment acceptance was verified on 2026-10-15 in a pilot environment: a submission uploaded through the public HTTPS API was graded by a worker on an Ubuntu laptop (Docker 29.1.3 with the `runsc` runtime) inside the gVisor sandbox, and the score, per-test results, and coverage were persisted and served back through the result API. Phases 5 and 6 are validated by the standard test suite with a substituted execution boundary.
+- Phase 4 acceptance was verified with real containment on 2026-10-15 in a pilot environment: a submission uploaded through the public HTTPS API was graded by a worker on an Ubuntu laptop (Docker 29.1.3 with the `runsc` runtime) inside the gVisor sandbox, and the score, per-test results, and coverage were persisted and served back through the result API. Phases 5 and 6 are validated by the standard test suite with a substituted execution boundary.
 - Student-controlled Maven projects can falsify their own reports. Authoritative grading requires a teacher-controlled test harness; this is release work.
 - The hint provider output checks limit, but do not guarantee, tutoring quality or prevent solution disclosure.

@@ -45,7 +45,7 @@ public class DockerSandbox implements Sandbox {
         var args=new ArrayList<>(List.of("docker","create","--name",name,"--runtime=runsc","--network=none","--read-only",
                 "--user=10001:10001","--cap-drop=ALL","--security-opt=no-new-privileges","--pids-limit=256",
                 "--memory="+memory+"m","--memory-swap="+memory+"m","--cpus="+cpu,
-                "--ulimit=nofile=1024:1024","--ulimit=fsize=33554432:33554432","--log-driver=local","--log-opt=max-size=20m","--log-opt=max-file=1",
+                "--ulimit=nofile=1024:1024","--ulimit=fsize=33554432:33554432","--log-driver=local","--log-opt=max-size=20m","--log-opt=max-file=1","--log-opt=compress=false",
                 "--tmpfs=/code:rw,nosuid,nodev,size="+(referenceData==null?805306368L:4294967296L)+",uid=10001,gid=10001,mode=0700",
                 "--tmpfs=/output:rw,noexec,nosuid,nodev,size=33554432,uid=10001,gid=10001,mode=0700",
                 "--tmpfs=/tmp:rw,nosuid,nodev,size=67108864,uid=10001,gid=10001,mode=0700",

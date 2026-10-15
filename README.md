@@ -6,7 +6,7 @@ Automated grading and security feedback for students learning Java test automati
 
 Implemented: account registration and authentication, cohort and assignment management, validated ZIP submission intake, private object storage with queue dispatch, a sandboxed grading worker with report parsing and scoring, security scanning with optional AI hints, and a React workspace connected to the API. A separate demo area with labeled sample data is included for design review.
 
-Pending acceptance: real sandbox execution under gVisor on Linux, a live vulnerability snapshot refresh, and an evaluated hint provider. See [ROADMAP](ROADMAP.md) for phase status and [DECISIONS](DECISIONS.md) for the reasoning behind the main design choices.
+Pending acceptance: a live vulnerability snapshot refresh and an evaluated hint provider. Real sandbox execution under gVisor on Linux is verified (see [ROADMAP](ROADMAP.md) acceptance notes). See [ROADMAP](ROADMAP.md) for phase status and [DECISIONS](DECISIONS.md) for the reasoning behind the main design choices.
 
 ## Requirements
 

@@ -84,6 +84,7 @@ class AuthIntegrationTest {
         var response = http.postForEntity("/api/v1/auth/refresh", Map.of("refreshToken", session.refreshToken()), AuthService.Tokens.class);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().refreshToken()).isNotEqualTo(session.refreshToken());
+        assertThat(get("/auth/me", session.accessToken()).getStatusCode().value()).isEqualTo(401);
         assertThat(get("/auth/me", response.getBody().accessToken()).getStatusCode().value()).isEqualTo(200);
         assertThat(post("/auth/refresh", Map.of("refreshToken", session.refreshToken())).getStatusCode().value()).isEqualTo(401);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM refresh_tokens", Integer.class)).isEqualTo(1);
@@ -119,34 +120,37 @@ class AuthIntegrationTest {
         var expired = login("student@fixture.local");
         jdbc.update("UPDATE refresh_tokens SET expires_at=now()-interval '1 second'");
         assertThat(post("/auth/refresh", Map.of("refreshToken", expired.refreshToken())).getStatusCode().value()).isEqualTo(401);
+        assertThat(get("/auth/me", expired.accessToken()).getStatusCode().value()).isEqualTo(401);
+        var other = login("student@fixture.local");
         var current = login("student@fixture.local");
         for (int i = 0; i < 2; i++) assertThat(post("/auth/logout", Map.of("refreshToken", current.refreshToken())).getStatusCode().value()).isEqualTo(204);
         assertThat(post("/auth/refresh", Map.of("refreshToken", current.refreshToken())).getStatusCode().value()).isEqualTo(401);
-        // Logout revokes the refresh token; already-issued access tokens retain their short lifetime.
-        assertThat(get("/auth/me", current.accessToken()).getStatusCode().value()).isEqualTo(200);
+        assertThat(get("/auth/me", other.accessToken()).getStatusCode().value()).isEqualTo(200);
+        // Revoking a session rejects subsequent requests with its access token.
+        assertThat(get("/auth/me", current.accessToken()).getStatusCode().value()).isEqualTo(401);
     }
     @Test void rejectsMissingMalformedTamperedAndExpiredAccess() {
         var user = fixture("student@fixture.local", Role.STUDENT);
         assertThat(get("/auth/me", null).getStatusCode().value()).isEqualTo(401);
         assertThat(get("/auth/me", "bad.token").getStatusCode().value()).isEqualTo(401);
-        String token = tokens.issue(user);
+        String token = sessionToken(user);
         String[] parts = token.split("\\.");
         String signature = (parts[2].startsWith("A") ? "B" : "A") + parts[2].substring(1);
         assertThat(get("/auth/me", parts[0] + "." + parts[1] + "." + signature).getStatusCode().value()).isEqualTo(401);
         var past = java.time.Clock.offset(java.time.Clock.systemUTC(), java.time.Duration.ofHours(-2));
-        String expired = new TokenService("fixture-secret-".repeat(6), 60, 7, past).issue(user);
+        String expired = new TokenService("fixture-secret-".repeat(6), 60, 7, past).issue(user, "a".repeat(64));
         assertThat(get("/auth/me", expired).getStatusCode().value()).isEqualTo(401);
     }
     @Test void deletedUsersAndChangedRolesInvalidateAccess() {
         var user = fixture("teacher@fixture.local", Role.INSTRUCTOR);
-        String token = tokens.issue(user);
+        String token = sessionToken(user);
         jdbc.update("UPDATE users SET role='STUDENT' WHERE id=?", user.id());
         assertThat(get("/auth/me", token).getStatusCode().value()).isEqualTo(401);
         jdbc.update("DELETE FROM users WHERE id=?", user.id());
         assertThat(get("/auth/me", token).getStatusCode().value()).isEqualTo(401);
     }
     @Test void studentCannotUseTeacherOrAdminEndpoints() {
-        String token = tokens.issue(fixture("student@fixture.local", Role.STUDENT));
+        String token = sessionToken(fixture("student@fixture.local", Role.STUDENT));
         assertThat(get("/cohorts/mine", token).getStatusCode().value()).isEqualTo(200);
         assertThat(get("/cohorts/mine", token).getBody()).isEqualTo("[]");
         assertThat(request(HttpMethod.POST, "/cohorts", Map.of(), token).getStatusCode().value()).isEqualTo(403);
@@ -156,11 +160,11 @@ class AuthIntegrationTest {
         var owner = fixture("owner@fixture.local", Role.INSTRUCTOR);
         var other = fixture("other@fixture.local", Role.INSTRUCTOR);
         long id = jdbc.queryForObject("INSERT INTO cohorts(name,instructor_id,start_date,end_date) VALUES ('Private class',?,'2026-10-01','2027-03-31') RETURNING id", Long.class, owner.id());
-        assertThat(get("/cohorts/mine", tokens.issue(owner)).getBody()).contains("Private class");
-        assertThat(get("/cohorts/mine", tokens.issue(other)).getBody()).isEqualTo("[]");
-        assertThat(get("/cohorts/" + id, tokens.issue(owner)).getStatusCode().value()).isEqualTo(200);
-        assertThat(get("/cohorts/" + id, tokens.issue(other)).getStatusCode().value()).isEqualTo(403);
-        assertThat(get("/cohorts/" + id, tokens.issue(fixture("admin@fixture.local", Role.ADMIN))).getStatusCode().value()).isEqualTo(200);
+        assertThat(get("/cohorts/mine", sessionToken(owner)).getBody()).contains("Private class");
+        assertThat(get("/cohorts/mine", sessionToken(other)).getBody()).isEqualTo("[]");
+        assertThat(get("/cohorts/" + id, sessionToken(owner)).getStatusCode().value()).isEqualTo(200);
+        assertThat(get("/cohorts/" + id, sessionToken(other)).getStatusCode().value()).isEqualTo(403);
+        assertThat(get("/cohorts/" + id, sessionToken(fixture("admin@fixture.local", Role.ADMIN))).getStatusCode().value()).isEqualTo(200);
     }
     @Test void reusableCohortAccessChecksStudentMembership() {
         var owner = fixture("owner@fixture.local", Role.INSTRUCTOR);
@@ -173,7 +177,7 @@ class AuthIntegrationTest {
         assertThat(access.canRead(-1, member.profile())).isFalse();
     }
     @Test void adminCanProvisionInstructorButNotAnotherAdmin() {
-        String token = tokens.issue(fixture("admin@fixture.local", Role.ADMIN));
+        String token = sessionToken(fixture("admin@fixture.local", Role.ADMIN));
         assertThat(request(HttpMethod.POST, "/admin/users", registration("teacher@fixture.local", "INSTRUCTOR"), token).getStatusCode().value()).isEqualTo(201);
         assertThat(login("teacher@fixture.local").role()).isEqualTo(Role.INSTRUCTOR);
         assertThat(request(HttpMethod.POST, "/admin/users", registration("other@fixture.local", "ADMIN"), token).getStatusCode().value()).isEqualTo(403);
@@ -192,7 +196,7 @@ class AuthIntegrationTest {
         assertThat(denied.getHeaders().getAccessControlAllowOrigin()).isNull();
     }
     @Test void teacherCreatesCohortEnrollsStudentsAndPublishesAssignment() throws Exception {
-        String teacher = tokens.issue(fixture("teacher@fixture.local", Role.INSTRUCTOR));
+        String teacher = sessionToken(fixture("teacher@fixture.local", Role.INSTRUCTOR));
         var student = fixture("student@fixture.local", Role.STUDENT);
         var created = request(HttpMethod.POST,"/cohorts",Map.of("name","Java","startDate","2026-10-01","endDate","2027-03-31"),teacher);
         assertThat(created.getStatusCode().value()).isEqualTo(201);
@@ -203,24 +207,24 @@ class AuthIntegrationTest {
         var assignment = request(HttpMethod.POST,"/assignments",assignmentBody(cohort,60),teacher);
         assertThat(assignment.getStatusCode().value()).isEqualTo(201);
         long id = new com.fasterxml.jackson.databind.ObjectMapper().readTree(assignment.getBody()).get("id").asLong();
-        assertThat(get("/assignments/"+id,tokens.issue(student)).getStatusCode().value()).isEqualTo(200);
-        assertThat(get("/assignments?cohortId="+cohort,tokens.issue(student)).getBody()).contains("Exercise");
-        var outsider = tokens.issue(fixture("outsider@fixture.local",Role.STUDENT));
+        assertThat(get("/assignments/"+id,sessionToken(student)).getStatusCode().value()).isEqualTo(200);
+        assertThat(get("/assignments?cohortId="+cohort,sessionToken(student)).getBody()).contains("Exercise");
+        var outsider = sessionToken(fixture("outsider@fixture.local",Role.STUDENT));
         assertThat(get("/assignments/"+id,outsider).getStatusCode().value()).isEqualTo(403);
-        assertThat(request(HttpMethod.POST,"/assignments",assignmentBody(cohort,60),tokens.issue(student)).getStatusCode().value()).isEqualTo(403);
+        assertThat(request(HttpMethod.POST,"/assignments",assignmentBody(cohort,60),sessionToken(student)).getStatusCode().value()).isEqualTo(403);
     }
     @Test void teacherWritesEnforceOwnershipValidationAndAtomicMembership() {
         var owner=fixture("owner@fixture.local",Role.INSTRUCTOR);
         var student=fixture("student@fixture.local",Role.STUDENT);
         var other=fixture("other@fixture.local",Role.INSTRUCTOR);
         long cohort=jdbc.queryForObject("INSERT INTO cohorts(name,instructor_id,start_date,end_date) VALUES ('Fixture',?,'2026-10-01','2027-03-31') RETURNING id",Long.class,owner.id());
-        String token=tokens.issue(owner);
+        String token=sessionToken(owner);
         assertThat(request(HttpMethod.POST,"/cohorts",Map.of("name","Bad","startDate","2027-01-01","endDate","2026-01-01"),token).getStatusCode().value()).isEqualTo(400);
         assertThat(request(HttpMethod.POST,"/cohorts/"+cohort+"/members",Map.of("studentIds",List.of(student.id(),other.id())),token).getStatusCode().value()).isEqualTo(400);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM cohort_members",Integer.class)).isZero();
-        assertThat(request(HttpMethod.POST,"/cohorts/"+cohort+"/members",Map.of("studentIds",List.of(student.id())),tokens.issue(other)).getStatusCode().value()).isEqualTo(403);
+        assertThat(request(HttpMethod.POST,"/cohorts/"+cohort+"/members",Map.of("studentIds",List.of(student.id())),sessionToken(other)).getStatusCode().value()).isEqualTo(403);
         assertThat(request(HttpMethod.POST,"/assignments",assignmentBody(cohort,50),token).getStatusCode().value()).isEqualTo(400);
-        assertThat(request(HttpMethod.POST,"/assignments",assignmentBody(cohort,60),tokens.issue(other)).getStatusCode().value()).isEqualTo(403);
+        assertThat(request(HttpMethod.POST,"/assignments",assignmentBody(cohort,60),sessionToken(other)).getStatusCode().value()).isEqualTo(403);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM assignments",Integer.class)).isZero();
     }
     @Test void openApiDocumentsTeacherAndAuthEndpoints() {
@@ -246,4 +250,11 @@ class AuthIntegrationTest {
         if (token != null) headers.setBearerAuth(token);
         return http.exchange("/api/v1" + path, method, new HttpEntity<>(body, headers), String.class);
     }
+    private String sessionToken(User user) {
+        String sessionHash = java.util.UUID.randomUUID().toString().replace("-", "").repeat(2);
+        jdbc.update("INSERT INTO refresh_tokens(user_id,token_hash,expires_at) VALUES (?,?,now()+interval '7 days')",
+                user.id(), sessionHash);
+        return tokens.issue(user, sessionHash);
+    }
 }
+

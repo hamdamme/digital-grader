@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 const base = process.env.SMOKE_BASE_URL;
 const password = process.env.SMOKE_PASSWORD;
 const output = process.env.SMOKE_OUTPUT;
+const realGrading = process.env.SMOKE_REAL_GRADING === "true";
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.SMOKE_CHROME_PATH
@@ -99,9 +100,9 @@ try {
     .getByLabel("Project ZIP")
     .setInputFiles(join(output, "project.zip"));
   await page.getByRole("button", { name: "Submit project" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Waiting for grading" }),
-  ).toBeVisible();
+  if (!realGrading) {
+    await expect(page.getByRole("heading", { name: "Waiting for grading" })).toBeVisible();
+  }
   await page.screenshot({
     path: join(output, "queued-submission.png"),
     fullPage: true,
@@ -112,16 +113,35 @@ try {
   await expect(
     page.getByRole("cell", { name: "Casey Student" }).first(),
   ).toBeVisible();
-  await expect(
-    page.getByRole("cell", { name: "QUEUED", exact: true }),
-  ).toBeVisible();
+  if (!realGrading) {
+    await expect(page.getByRole("cell", { name: "QUEUED", exact: true })).toBeVisible();
+  }
   await page.screenshot({
     path: join(output, "teacher-overview.png"),
     fullPage: true,
   });
   await page.getByRole("link", { name: /Open submission/ }).click();
   const submissionId = new URL(page.url()).hash.match(/review\/(\d+)/)[1];
-  // Seed report fixtures only in the disposable test database. No grading execution is claimed.
+  if (realGrading) {
+    await expect(page.getByRole("heading", { name: "Test results" })).toBeVisible({ timeout: 240000 });
+    await expect(page.getByText(/deliberatelyFails/).first()).toBeVisible();
+    // Read the result through the authenticated API; never insert result fixtures.
+    const teacherAuth = await context.request.post("/api/v1/auth/login", {
+      data: { email: "teacher@smoke.local", password },
+    });
+    expect(teacherAuth.ok()).toBeTruthy();
+    const teacherToken = (await teacherAuth.json()).accessToken;
+    const response = await context.request.get(`/api/v1/submissions/${submissionId}/result`, {
+      headers: { Authorization: `Bearer ${teacherToken}` },
+    });
+    expect(response.ok()).toBeTruthy();
+    const result = await response.json();
+    expect(result.testsTotal).toBe(2);
+    expect(result.testsPassed).toBe(1);
+    expect(result.testsFailed).toBe(1);
+    expect(Number(result.coverageLinePct)).toBeGreaterThan(0);
+  } else {
+  // Interface fixtures remain separate from real grading acceptance.
   execFileSync(
     "docker",
     [
@@ -150,6 +170,7 @@ try {
   await expect(
     page.getByRole("heading", { name: "Test results" }),
   ).toBeVisible();
+  }
   await page.getByRole("tab", { name: "Review history" }).click();
   await page.getByLabel("Reviewed score").fill("85");
   await page
@@ -183,9 +204,10 @@ try {
   ).toBeVisible();
   expect(errors).toEqual([]);
   console.log(
-    "PASS: registration, login, cohort creation, enrollment, assignment creation, ZIP upload, queued result, teacher list, stored report fixtures, score override, mobile layout, reload sign out.",
+    (realGrading ? "PASS: real gVisor grading and report retrieval; " : "PASS: stored report fixtures; ") + "registration, login, cohort creation, enrollment, assignment creation, ZIP upload, teacher list, score override, mobile layout, reload sign out.",
   );
 } finally {
   await context.close();
   await browser.close();
 }
+

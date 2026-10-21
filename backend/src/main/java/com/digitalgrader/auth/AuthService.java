@@ -52,10 +52,17 @@ public class AuthService {
         String refresh = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         jdbc.update("INSERT INTO refresh_tokens(user_id,token_hash,expires_at) VALUES (?,?,?)",
                 user.id(), hash(refresh), Timestamp.from(clock.instant().plus(tokens.refreshLifetime())));
-        return new Tokens(tokens.issue(user), refresh, user.role());
+        return new Tokens(tokens.issue(user, hash(refresh)), refresh, user.role());
+    }
+    public boolean isSessionActive(long userId, String sessionHash) {
+        if (sessionHash == null || !sessionHash.matches("[0-9a-f]{64}")) return false;
+        return Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT EXISTS (SELECT 1 FROM refresh_tokens WHERE user_id=? AND token_hash=? AND expires_at>?)",
+                Boolean.class, userId, sessionHash, Timestamp.from(clock.instant())));
     }
     public static String hash(String token) {
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(token.getBytes(StandardCharsets.UTF_8))); }
         catch (NoSuchAlgorithmException error) { throw new IllegalStateException("SHA-256 unavailable", error); }
     }
 }
+

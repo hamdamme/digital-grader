@@ -133,3 +133,37 @@ Public repository: [hamdamme/digital-grader](https://github.com/hamdamme/digital
 ## License
 
 MIT — see [LICENSE](LICENSE). Dependencies retain their own licenses; see [third party notices](THIRD_PARTY.md).
+
+
+## Session revocation
+
+Access tokens identify the stored refresh session by its hash. Each authenticated
+request checks that the session belongs to the user and has not expired or been
+revoked. Logout invalidates both credentials for that session; other sessions
+remain active. Refresh rotates both credentials and invalidates the previous pair.
+Requests already authorized before logout may finish.
+
+Deploying this change requires existing users to sign in again because earlier
+access tokens do not carry a session identifier. No database migration is needed.
+
+## Complete grading acceptance
+
+On a Linux Docker host with gVisor configured, build the backend, local MinIO
+image, and student sandbox image using the commands above. Install frontend
+dependencies with `npm ci --prefix frontend`, then install Chromium with
+`cd frontend && npx playwright install --with-deps chromium`.
+From the repository root, run:
+
+```sh
+python3 scripts/browser-smoke.py --grading
+```
+
+This mode creates disposable services, uploads the trusted sample through the
+browser, dispatches it through RabbitMQ, runs the actual grading worker, and
+checks the resulting test counts and coverage through the authenticated API.
+It does not insert grading results into the database. Missing gVisor or sandbox
+images fail the check. Screenshots and service logs remain in `.data/`.
+
+The default browser check uses stored report fixtures to test interface behavior.
+Its success does not establish that real grading acceptance passed. The complete
+mode covers grading and review; security scanning remains a separate acceptance check.

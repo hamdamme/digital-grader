@@ -133,3 +133,61 @@ Public repository: [hamdamme/digital-grader](https://github.com/hamdamme/digital
 ## License
 
 MIT — see [LICENSE](LICENSE). Dependencies retain their own licenses; see [third party notices](THIRD_PARTY.md).
+
+
+## Session revocation
+
+Access tokens identify the stored refresh session by its hash. Each authenticated
+request checks that the session belongs to the user and has not expired or been
+revoked. Logout invalidates both credentials for that session; other sessions
+remain active. Refresh rotates both credentials and invalidates the previous pair.
+Requests already authorized before logout may finish.
+
+Deploying this change requires existing users to sign in again because earlier
+access tokens do not carry a session identifier. No database migration is needed.
+
+## Complete grading acceptance
+
+On a Linux Docker host with gVisor configured, build the backend, local MinIO
+image, and student sandbox image using the commands above. Install frontend
+dependencies with `npm ci --prefix frontend`, then install Chromium with
+`cd frontend && npx playwright install --with-deps chromium`.
+From the repository root, run:
+
+```sh
+python3 scripts/browser-smoke.py --grading
+```
+
+This mode creates disposable services, uploads the trusted sample through the
+browser, dispatches it through RabbitMQ, runs the actual grading worker, and
+checks the resulting test counts and coverage through the authenticated API.
+It does not insert grading results into the database. Missing gVisor or sandbox
+images fail the check. Screenshots and service logs remain in `.data/`.
+
+The default browser check uses stored report fixtures to test interface behavior.
+Its success does not establish that real grading acceptance passed. The complete
+mode covers grading and review; security scanning remains a separate acceptance check.
+
+
+## Scoring policy
+
+The coverage threshold is the minimum measured line coverage required to earn
+coverage credit. Below it, the coverage component is zero. At or above it, the
+measured percentage is multiplied by the coverage weight. Test and quality
+components are unchanged. Raw coverage remains visible in the result; the
+rubric breakdown records credited coverage. A threshold of zero preserves
+proportional credit. Existing stored grades are not recalculated.
+
+## Grade integrity limits
+
+The sandbox isolates execution from the host. It does not establish that reports
+written by submitted code are authentic. The submitted Maven configuration and
+code can influence test execution and write files used for scoring. Current
+scores are suitable for supervised feedback, not authoritative assessment of
+adversarial submissions.
+
+Before using scores for consequential assessment, separate the trusted grading
+harness and evidence collection from submitted code, define which tests students
+may supply, and validate attempts to forge reports or skip required tests. This
+work remains outstanding. The real grading acceptance sample verifies the normal
+workflow and does not establish resistance to report fabrication.

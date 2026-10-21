@@ -5,6 +5,7 @@ import java.util.List;
 import java.net.URI;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.digitalgrader.auth.JwtFilter;
+import com.digitalgrader.auth.AuthService;
 import com.digitalgrader.auth.TokenService;
 import com.digitalgrader.common.ApiErrors;
 import com.digitalgrader.users.UserRepository;
@@ -27,7 +28,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, TokenService tokens, UserRepository users,
+    SecurityFilterChain securityFilterChain(HttpSecurity http, TokenService tokens, UserRepository users, AuthService sessions,
             ObjectMapper mapper, UrlBasedCorsConfigurationSource cors) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
                 .cors(config -> config.configurationSource(cors))
@@ -51,7 +52,7 @@ public class SecurityConfig {
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, error) -> ApiErrors.write(mapper, response, HttpStatus.UNAUTHORIZED))
                         .accessDeniedHandler((request, response, error) -> ApiErrors.write(mapper, response, HttpStatus.FORBIDDEN)))
-                .addFilterBefore(new JwtFilter(tokens, users, mapper), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtFilter(tokens, users, mapper, sessions), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
     @Bean
@@ -75,3 +76,4 @@ public class SecurityConfig {
         return source;
     }
 }
+

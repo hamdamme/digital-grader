@@ -45,4 +45,24 @@ class GradingUnitTest {
         assertThatThrownBy(() -> sandbox.run(java.nio.file.Path.of("fixture.zip"))).hasMessageContaining("readiness");
         verify(docker,times(1)).run(anyList(),any(),anyInt());
     }
+    @Test void coverageThresholdGatesOnlyCoverageCredit() {
+        var tests=List.of(new ReportParser.TestCase("Example#passes","PASSED",0,null,null));
+        var rubric=new Rubric(new Rubric.Weights(60,20,20),70,List.of());
+        for (String measured : List.of("69.99","70","70.01")) {
+            var coverage=new ReportParser.Coverage(new BigDecimal(measured),BigDecimal.ZERO);
+            var score=Scoring.calculate(rubric,tests,coverage,Map.of(),true);
+            BigDecimal credit=measured.equals("69.99") ? BigDecimal.ZERO : new BigDecimal(measured);
+            assertThat(score.coverage()).isEqualByComparingTo(credit);
+            assertThat(score.tests()).isEqualByComparingTo("100");
+            assertThat(score.quality()).isEqualByComparingTo("100");
+            assertThat(score.score()).isEqualByComparingTo(new BigDecimal("80").add(credit.multiply(new BigDecimal("0.2"))).setScale(2,java.math.RoundingMode.HALF_UP));
+            assertThat(coverage.line()).isEqualByComparingTo(measured);
+        }
+        var zero=new Rubric(new Rubric.Weights(0,100,0),0,List.of());
+        assertThat(Scoring.calculate(zero,List.of(),ReportParser.jacoco(null),Map.of(),true).score()).isZero();
+        var full=new Rubric(new Rubric.Weights(0,100,0),100,List.of());
+        assertThat(Scoring.calculate(full,List.of(),new ReportParser.Coverage(new BigDecimal("99.99"),BigDecimal.ZERO),Map.of(),true).score()).isZero();
+        assertThat(Scoring.calculate(full,List.of(),new ReportParser.Coverage(new BigDecimal("100"),BigDecimal.ZERO),Map.of(),true).score()).isEqualByComparingTo("100");
+    }
 }
+

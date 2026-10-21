@@ -269,8 +269,9 @@ export function AssignmentsPage() {
                 />
               </label>
               <label>
-                Coverage target (%)
+                Minimum coverage for credit (%)
                 <input
+                  aria-describedby="coverage-credit-help"
                   name="threshold"
                   type="number"
                   min="0"
@@ -280,6 +281,7 @@ export function AssignmentsPage() {
                 />
               </label>
             </div>
+            <p id="coverage-credit-help">Coverage below this minimum earns no coverage credit. At or above it, the measured percentage is used. Test and quality credit are unchanged.</p>
             <label className="check-label">
               <input
                 name="checks"
@@ -346,3 +348,4 @@ export function AssignmentsPage() {
     </>
   );
 }
+

@@ -25,9 +25,13 @@ public final class Scoring {
         }
         BigDecimal quality=complete ? BigDecimal.valueOf(Math.max(0,100-5*violations)) : BigDecimal.ZERO;
         if (!compiled) return new Score(BigDecimal.ZERO,BigDecimal.ZERO,BigDecimal.ZERO,BigDecimal.ZERO);
+        // The threshold gates coverage credit only; measured coverage remains in the result.
+        BigDecimal coverageCredit=coverage.line().compareTo(BigDecimal.valueOf(rubric.coverageThreshold())) >= 0
+                ? coverage.line() : BigDecimal.ZERO;
         BigDecimal value=testPct.multiply(BigDecimal.valueOf(rubric.weights().tests()))
-                .add(coverage.line().multiply(BigDecimal.valueOf(rubric.weights().coverage())))
+                .add(coverageCredit.multiply(BigDecimal.valueOf(rubric.weights().coverage())))
                 .add(quality.multiply(BigDecimal.valueOf(rubric.weights().codeQuality()))).divide(BigDecimal.valueOf(100),2,RoundingMode.HALF_UP);
-        return new Score(value,testPct,coverage.line(),quality);
+        return new Score(value,testPct,coverageCredit,quality);
     }
 }
+

@@ -18,10 +18,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 public class JwtFilter extends OncePerRequestFilter {
     private final TokenService tokens;
+    private final AuthService sessions;
     private final UserRepository users;
     private final ObjectMapper mapper;
-    public JwtFilter(TokenService tokens, UserRepository users, ObjectMapper mapper) {
-        this.tokens = tokens; this.users = users; this.mapper = mapper;
+    public JwtFilter(TokenService tokens, UserRepository users, ObjectMapper mapper, AuthService sessions) {
+        this.sessions = sessions; this.tokens = tokens; this.users = users; this.mapper = mapper;
     }
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -31,6 +32,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 if (!header.startsWith("Bearer ") || header.length() > 4096) throw new IllegalArgumentException();
                 var claims = tokens.verify(header.substring(7));
                 var user = users.findById(Long.parseLong(claims.getSubject())).orElseThrow(IllegalArgumentException::new);
+                if (!sessions.isSessionActive(user.id(), claims.get("session", String.class))) throw new IllegalArgumentException();
                 if (!user.role().name().equals(claims.get("role", String.class))) throw new IllegalArgumentException();
                 var auth = new UsernamePasswordAuthenticationToken(user.profile(), null,
                         List.of(new SimpleGrantedAuthority("ROLE_" + user.role().name())));
@@ -44,3 +46,4 @@ public class JwtFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 }
+

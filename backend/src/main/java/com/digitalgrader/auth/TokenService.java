@@ -31,10 +31,12 @@ public class TokenService {
         this.accessLifetime = Duration.ofMinutes(minutes);
         this.refreshLifetime = Duration.ofDays(days);
     }
-    public String issue(User user) {
+    public String issue(User user, String sessionHash) {
+        if (sessionHash == null || !sessionHash.matches("[0-9a-f]{64}"))
+            throw new IllegalArgumentException("Invalid session identifier");
         var now = clock.instant();
         return Jwts.builder().issuer("digital-grader").subject(Long.toString(user.id()))
-                .claim("role", user.role().name()).claim("token_use", "access")
+                .claim("role", user.role().name()).claim("token_use", "access").claim("session", sessionHash)
                 .id(UUID.randomUUID().toString()).issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(accessLifetime))).signWith(key, Jwts.SIG.HS256).compact();
     }
@@ -47,3 +49,4 @@ public class TokenService {
     }
     public Duration refreshLifetime() { return refreshLifetime; }
 }
+

@@ -350,7 +350,7 @@ class SubmissionIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM instructor_overrides",Integer.class)).isEqualTo(1);
     }
     private ResponseEntity<String> override(long id,User user,int score,java.math.BigDecimal expected,String reason) {
-        var headers=new HttpHeaders();headers.setBearerAuth(tokens.issue(user));
+        var headers=new HttpHeaders();headers.setBearerAuth(sessionToken(user));
         return http.postForEntity("/api/v1/submissions/"+id+"/overrides",new HttpEntity<>(Map.of("score",score,"expectedScore",expected,"reason",reason),headers),String.class);
     }
     @Test void dashboardAggregatesOverridesCoverageAndCompletedScansWithoutLeakingAccess() throws Exception {
@@ -384,7 +384,7 @@ class SubmissionIntegrationTest {
         grading.grade(id);return id;
     }
     private ResponseEntity<String> hint(long id,User user) {
-        var headers=new HttpHeaders();headers.setBearerAuth(tokens.issue(user));
+        var headers=new HttpHeaders();headers.setBearerAuth(sessionToken(user));
         return http.postForEntity("/api/v1/submissions/"+id+"/hint",new HttpEntity<>(headers),String.class);
     }
     private long accepted(ResponseEntity<String> response) throws Exception {
@@ -392,13 +392,20 @@ class SubmissionIntegrationTest {
         return json.readTree(response.getBody()).get("submissionId").asLong();
     }
     private ResponseEntity<String> upload(User user,byte[] bytes) {
-        var headers=new HttpHeaders(); headers.setBearerAuth(tokens.issue(user)); headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        var headers=new HttpHeaders(); headers.setBearerAuth(sessionToken(user)); headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         var body=new LinkedMultiValueMap<String,Object>();
         body.add("file",new ByteArrayResource(bytes) { @Override public String getFilename() { return "project.zip"; } });
         return http.postForEntity("/api/v1/assignments/"+assignment+"/submissions",new HttpEntity<>(body,headers),String.class);
     }
     private ResponseEntity<String> get(String path,User user) {
-        var headers=new HttpHeaders(); headers.setBearerAuth(tokens.issue(user));
+        var headers=new HttpHeaders(); headers.setBearerAuth(sessionToken(user));
         return http.exchange("/api/v1"+path,HttpMethod.GET,new HttpEntity<>(headers),String.class);
     }
+    private String sessionToken(User user) {
+        String sessionHash = java.util.UUID.randomUUID().toString().replace("-", "").repeat(2);
+        jdbc.update("INSERT INTO refresh_tokens(user_id,token_hash,expires_at) VALUES (?,?,now()+interval '7 days')",
+                user.id(), sessionHash);
+        return tokens.issue(user, sessionHash);
+    }
 }
+

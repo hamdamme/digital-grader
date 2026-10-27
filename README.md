@@ -31,7 +31,7 @@ docker compose up -d --build --wait --wait-timeout 180
 |---|---|---|
 | Backend | http://127.0.0.1:8080/api/v1/health | Application and database health |
 | PostgreSQL | 127.0.0.1:15432 | Application database |
-| RabbitMQ AMQP | 127.0.0.1:5673 | Submission and scan queues |
+| RabbitMQ AMQP | 127.0.0.1:5673 | Submission queue |
 | RabbitMQ console | http://127.0.0.1:15673 | Queue administration |
 | MinIO S3 | http://127.0.0.1:19000 | Private submission and report storage |
 | MinIO console | http://127.0.0.1:19001 | Object administration |
@@ -46,7 +46,7 @@ Public registration creates student accounts only. To provision the first admini
 
 ### Configuration
 
-`.env.example` lists every setting with notes. Notable groups: database (`DB_*`), broker (`RABBIT_*`), storage (`MINIO_*`), token signing and lifetimes (`JWT_*`), sandbox limits (`SANDBOX_*`) and the optional hint provider (`AI_*`, disabled by default). Missing database settings or a short `JWT_SECRET` fail startup before a connection pool is created.
+`.env.example` lists the main application settings with notes. Notable groups: database (`DB_*`), broker (`RABBIT_*`), storage (`MINIO_*`), token signing and lifetimes (`JWT_*`), sandbox limits (`SANDBOX_*`) and the optional hint provider (`AI_*`, disabled by default). Missing database settings or a short `JWT_SECRET` fail startup before a connection pool is created.
 
 ## Grading worker
 
@@ -67,13 +67,20 @@ gVisor setup: https://gvisor.dev/docs/user_guide/quick_start/docker/
 
 ## Security worker and hints
 
-A second worker consumes completed grades and runs offline security scans against a pinned vulnerability snapshot:
+A separate security worker polls the database outbox for completed grades and runs offline scans against a local vulnerability snapshot. It requires Linux with `runsc`, just like the grading worker. Prepare the scanner image and reference data first:
 
 ```sh
 docker build -f sandbox/Dockerfile.security -t digital-grader-security:local sandbox
-scripts/update-security-db.sh /path/to/vulnerability-snapshot   # refresh pinned data
+./scripts/update-security-db.sh
+```
+
+The updater creates a new directory under `.data/` and prints its absolute path. Set `SECURITY_DATABASE_PATH` to that path in your private `.env`, then start the worker:
+
+```sh
 ./scripts/security-worker.sh
 ```
+
+Snapshots older than seven days are rejected. Run the updater again when needed, update the configured path, and restart the worker. An optional `NVD_API_KEY` can be exported in the shell before running the updater. The update uses network access; submission scans run without network access.
 
 AI hints are disabled by default. When enabled (`AI_ENABLED=true`), hint requests send bounded test evidence and finding locations to the configured Chat Completions compatible provider; source excerpts are not transmitted. See `.env.example` for provider settings.
 
@@ -92,14 +99,43 @@ Sign in to use the connected workspace, or open `/#/demo/studio` for the sample 
 
 ## Verification
 
+Run these commands from the repository root:
+
 ```sh
 ./scripts/backend.sh -B -ntp verify   # unit and integration tests, needs Docker
 python3 sandbox/test_extraction.py
-python3 sandbox/test_security_rules.py
-cd frontend && npm test && npm run build
+npm --prefix frontend test
+npm --prefix frontend run build
 ```
 
-Backend integration tests run against disposable PostgreSQL, MinIO and RabbitMQ containers and substitute the sandbox execution boundary; they validate orchestration, not gVisor containment. Real sandbox acceptance uses the `sandbox` Maven profile on a Linux host with `runsc`:
+Scanner smoke tests run inside the security image because they require its installed tools:
+
+```sh
+docker build -f sandbox/Dockerfile.security -t digital-grader-security:local sandbox
+docker run --rm --network=none --read-only \
+  --tmpfs /tmp:rw,nosuid,nodev,size=256m \
+  --tmpfs /code:rw,nosuid,nodev,size=256m,uid=10001,gid=10001 \
+  --entrypoint python3 digital-grader-security:local \
+  -I /opt/digital-grader/test_security_rules.py
+```
+
+These checks analyze trusted fixtures; they do not execute submitted code or verify a live vulnerability database.
+
+For the browser workflow, first build the backend JAR and local MinIO image, then install the browser:
+
+```sh
+docker build -t digital-grader-minio:2025-10-15 infra/minio
+./scripts/backend.sh -B -ntp package -DskipTests
+cd frontend
+npm ci
+npx playwright install chromium
+cd ..
+python3 scripts/browser-smoke.py
+```
+
+The browser check creates disposable services and removes them afterward. Result review uses stored fixtures; this check does not establish real grading execution.
+
+Backend integration tests run against disposable PostgreSQL, MinIO and RabbitMQ containers and substitute the sandbox execution boundary; they validate orchestration, not gVisor containment. The `sandbox` Maven profile runs both grading and security acceptance tests. It requires Linux with `runsc`, both sandbox images, and a current snapshot configured through `SECURITY_DATABASE_PATH`:
 
 ```sh
 ./scripts/backend.sh -B -ntp -Psandbox test

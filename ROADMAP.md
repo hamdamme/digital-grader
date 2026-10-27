@@ -10,7 +10,7 @@ Phase status for Digital Grader. Detailed reasoning lives in [DECISIONS](DECISIO
 | 4. Grading worker | gVisor sandbox execution, report parsing, scoring, artifact storage, result APIs | Done |
 | 5. Security feedback | Offline vulnerability scanning, stored findings, scan status tracking | Implemented; live snapshot refresh pending |
 | 6. AI hints | Configurable provider, bounded evidence, cached hints, output limits | Implemented; provider evaluation pending |
-| 7. Connected workspace | Frontend API integration, uploads, results, instructor review history | Implemented locally; release acceptance pending |
+| 7. Connected workspace | Frontend API integration, uploads, results, instructor review history | Implemented and merged; release acceptance pending |
 | 8. Release readiness | Account recovery, email verification, abuse protection, production storage selection, deployment hardening, teacher-controlled test harness | Not started |
 
 ## Acceptance notes

@@ -24,6 +24,8 @@ class DockerSandboxTest {
         var args=sandbox.command("fixture",Path.of("/tmp/fixture.zip"),null);
         assertThat(args).contains("--runtime=runsc","--network=none","--read-only","--cap-drop=ALL","--security-opt=no-new-privileges","--user=10001:10001","--pids-limit=256","--memory=1536m","--memory-swap=1536m","--cpus=1.0");
         assertThat(args).anyMatch(a -> a.startsWith("--tmpfs=/output:")).contains("type=bind,src=/tmp/fixture.zip,dst=/input/submission.zip,readonly");
+        assertThat(args).anyMatch(a -> a.startsWith("--tmpfs=/tmp:") && a.contains("size=67108864"));
+        assertThat(args).anyMatch(a -> a.contains("fsize=33554432"));
         assertThat(args).doesNotContain("--privileged","--network=host","/var/run/docker.sock");
         assertThat(sandbox.run(Path.of("/tmp/fixture.zip"),null).exitCode()).isEqualTo(124);
         verify(docker).run(argThat(a -> a.get(1).equals("rm") && a.contains("--force")),any(),anyInt());
@@ -56,6 +58,10 @@ class DockerSandboxTest {
             sandbox.verifyReady();
             var args=sandbox.command("fixture",Path.of("/tmp/input.zip"),null);
             assertThat(args).contains("type=bind,src="+database+",dst=/input/reference-data,readonly","--network=none","--runtime=runsc");
+            // The read-only H2 copy of the vulnerability snapshot needs a /tmp tmpfs that holds it.
+            assertThat(args).anyMatch(a -> a.startsWith("--tmpfs=/tmp:") && a.contains("size=2147483648"));
+            // Trusted scanner tooling copies the snapshot and writes reports larger than the student file limit.
+            assertThat(args).noneMatch(a -> a.contains("fsize="));
         } finally { java.nio.file.Files.delete(database); }
     }
     @Test void rejectsUnsafeLimits() {

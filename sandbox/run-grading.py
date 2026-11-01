@@ -66,6 +66,15 @@ def read_regular(path, limit=2_000_000):
         os.close(fd)
 
 
+def validate_harness(archive):
+    """Reject harness entries outside src/test/, keeping the directory entries that archivers emit."""
+    with zipfile.ZipFile(archive) as harness_zip:
+        for entry in harness_zip.infolist():
+            name = entry.filename.rstrip("/")
+            if name and name not in ("src", "src/test") and not name.startswith("src/test/"):
+                raise ValueError("Harness entries must live under src/test/")
+
+
 def grade():
     deadline = time.monotonic() + int(os.environ["GRADE_TIMEOUT"])
     output = {"exitCode": 2, "log": "", "junit": [], "jacoco": None, "quality": {}}
@@ -86,11 +95,7 @@ def grade():
         # Instructor-controlled tests replace student test sources when a harness is attached.
         harness = Path("/input/harness.zip")
         if harness.is_file():
-            with zipfile.ZipFile(harness) as harness_zip:
-                for entry in harness_zip.infolist():
-                    name = entry.filename.rstrip("/")
-                    if name and name != "src" and not name.startswith("src/test/"):
-                        raise ValueError("Harness entries must live under src/test/")
+            validate_harness(harness)
             shutil.rmtree(root / "src" / "test", ignore_errors=True)
             extract(harness, root)
         shutil.copytree("/opt/maven-cache", "/code/repository")

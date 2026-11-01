@@ -42,13 +42,16 @@ public class DockerSandbox implements Sandbox {
     List<String> command(String name,Path archive,Path harness) {
         String input=archive.toAbsolutePath().toString();
         if (input.contains(",")) throw new IllegalArgumentException("Unsupported input path");
+        // Security scans copy the read-only vulnerability snapshot into the temp directory, so
+        // reference-data runs need a much larger /tmp tmpfs than the grading default.
+        String tmpSize=referenceData==null?"67108864":"2147483648";
         var args=new ArrayList<>(List.of("docker","create","--name",name,"--runtime=runsc","--network=none","--read-only",
                 "--user=10001:10001","--cap-drop=ALL","--security-opt=no-new-privileges","--pids-limit=256",
                 "--memory="+memory+"m","--memory-swap="+memory+"m","--cpus="+cpu,
-                "--ulimit=nofile=1024:1024","--ulimit=fsize=33554432:33554432","--log-driver=local","--log-opt=max-size=20m","--log-opt=max-file=1","--log-opt=compress=false",
+                "--ulimit=nofile=1024:1024","--log-driver=local","--log-opt=max-size=20m","--log-opt=max-file=1","--log-opt=compress=false",
                 "--tmpfs=/code:rw,nosuid,nodev,size="+(referenceData==null?805306368L:4294967296L)+",uid=10001,gid=10001,mode=0700",
                 "--tmpfs=/output:rw,noexec,nosuid,nodev,size=33554432,uid=10001,gid=10001,mode=0700",
-                "--tmpfs=/tmp:rw,nosuid,nodev,size=67108864,uid=10001,gid=10001,mode=0700",
+                "--tmpfs=/tmp:rw,nosuid,nodev,size="+tmpSize+",uid=10001,gid=10001,mode=0700",
                 "--mount","type=bind,src="+input+",dst=/input/submission.zip,readonly",
                 "--env","GRADE_TIMEOUT="+timeout,"--label=digital-grader.sandbox=true"));
         if (harness!=null) {
@@ -56,7 +59,12 @@ public class DockerSandbox implements Sandbox {
             if (tests.contains(",")) throw new IllegalArgumentException("Unsupported harness path");
             args.addAll(List.of("--mount","type=bind,src="+tests+",dst=/input/harness.zip,readonly"));
         }
-        if (referenceData!=null) args.addAll(List.of("--mount","type=bind,src="+referenceData+",dst=/input/reference-data,readonly"));
+        if (referenceData!=null) {
+            args.addAll(List.of("--mount","type=bind,src="+referenceData+",dst=/input/reference-data,readonly"));
+        } else {
+            // Student code may not write files larger than 32 MiB inside the sandbox.
+            args.add("--ulimit=fsize=33554432:33554432");
+        }
         args.add(imageId);
         return List.copyOf(args);
     }

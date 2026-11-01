@@ -35,6 +35,24 @@ class ExtractionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
             extract(self.fixture("link", b"/etc/passwd", stat.S_IFLNK | 0o777), Path(directory))
 
+    def test_harness_allows_archiver_directory_entries(self):
+        data = io.BytesIO()
+        with zipfile.ZipFile(data, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for name in ("src/", "src/test/", "src/test/java/example/", "src/test/java/example/HarnessTest.java"):
+                archive.writestr(name, "" if name.endswith("/") else "class HarnessTest {}")
+        with tempfile.TemporaryDirectory() as directory:
+            harness = Path(directory) / "harness.zip"
+            harness.write_bytes(data.getvalue())
+            runner.validate_harness(harness)
+
+    def test_harness_rejects_entries_outside_test_tree(self):
+        for name in ("pom.xml", "src/main/java/App.java", "src/../escape", "build.gradle"):
+            with tempfile.TemporaryDirectory() as directory:
+                harness = Path(directory) / "harness.zip"
+                harness.write_bytes(self.fixture(name).getvalue())
+                with self.assertRaises(ValueError):
+                    runner.validate_harness(harness)
+
     def test_bounds_expansion(self):
         with tempfile.TemporaryDirectory() as directory, self.assertRaises(ValueError):
             extract(self.fixture("bomb", bytes(1024 * 1024)), Path(directory))

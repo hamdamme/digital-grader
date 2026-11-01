@@ -30,7 +30,7 @@ public class DockerSecurityScanner implements SecurityScanner {
     }
     public List<ScanReports.Finding> scan(Path archive) {
         var result=sandbox.run(archive,null);
-        if (result.exitCode()!=0) throw new IllegalStateException("Security scan did not complete");
+        if (result.exitCode()!=0) throw new IllegalStateException("Security scan did not complete: " + (result.log()==null?"":result.log()));
         return ScanReports.parse(json,result.quality().get("semgrep"),result.quality().get("dependency-check"));
     }
 }

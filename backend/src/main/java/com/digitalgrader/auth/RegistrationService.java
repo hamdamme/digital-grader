@@ -39,6 +39,11 @@ public class RegistrationService {
             throw new ApiException(HttpStatus.CONFLICT, "Email is already registered");
         }
     }
+    public void resendVerification(String email) {
+        users.findByEmail(email).ifPresent(user -> {
+            if (!user.emailVerified()) sendVerification(user);
+        });
+    }
     public void sendVerification(User user) {
         try {
             String token = emailTokens.issue(user.id(), EmailTokenService.Purpose.VERIFY_EMAIL, Duration.ofHours(24));

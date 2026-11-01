@@ -74,12 +74,28 @@ class EmailVerificationIntegrationTest {
         post("/auth/register", registration("student@fixture.local"));
         String first = tokenFromLastMail("student@fixture.local");
         assertThat(post("/auth/login", Map.of("email", "student@fixture.local", "password", PASSWORD)).getStatusCode().value()).isEqualTo(403);
-        assertThat(request(HttpMethod.POST, "/auth/resend-verification", Map.of(), accessToken()).getStatusCode().value()).isEqualTo(204);
+        assertThat(post("/auth/resend-verification", Map.of("email", "student@fixture.local")).getStatusCode().value()).isEqualTo(204);
         // The old token no longer works; the fresh one does.
         assertThat(post("/auth/verify-email", Map.of("token", first)).getStatusCode().value()).isEqualTo(400);
         String second = tokenFromLastMail("student@fixture.local");
         assertThat(second).isNotEqualTo(first);
         assertThat(post("/auth/verify-email", Map.of("token", second)).getStatusCode().value()).isEqualTo(204);
+    }
+    @Test void resendVerificationNeverRevealsAccountExistence() {
+        assertThat(post("/auth/resend-verification", Map.of("email", "ghost@fixture.local")).getStatusCode().value()).isEqualTo(204);
+        post("/auth/register", registration("student@fixture.local"));
+        String first = tokenFromLastMail("student@fixture.local");
+        assertThat(post("/auth/resend-verification", Map.of("email", "student@fixture.local")).getStatusCode().value()).isEqualTo(204);
+        String second = tokenFromLastMail("student@fixture.local");
+        assertThat(second).isNotEqualTo(first);
+        assertThat(users.findByEmail("student@fixture.local").orElseThrow().emailVerified()).isFalse();
+    }
+    @Test void verifiedAccountsAreNotResent() {
+        post("/auth/register", registration("student@fixture.local"));
+        String token = tokenFromLastMail("student@fixture.local");
+        post("/auth/verify-email", Map.of("token", token));
+        assertThat(post("/auth/resend-verification", Map.of("email", "student@fixture.local")).getStatusCode().value()).isEqualTo(204);
+        assertThat(post.sentMessages().stream().filter(m -> m.startsWith("To: student@fixture.local")).count()).isEqualTo(1);
     }
     @Test void forgotPasswordNeverRevealsAccountExistence() {
         var existing = post("/auth/forgot-password", Map.of("email", "known@fixture.local"));

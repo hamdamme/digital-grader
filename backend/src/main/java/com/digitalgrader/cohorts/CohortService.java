@@ -52,7 +52,7 @@ public class CohortService {
         access.requireManage(id, user);
         var c = cohorts.find(id).orElseThrow();
         var members = jdbc.query("SELECT u.* FROM users u JOIN cohort_members m ON m.student_id=u.id WHERE m.cohort_id=? ORDER BY u.id",
-                (row, i) -> new User.Profile(row.getLong("id"), row.getString("email"), row.getString("full_name"), com.digitalgrader.users.Role.valueOf(row.getString("role"))), id);
+                (row, i) -> new User.Profile(row.getLong("id"), row.getString("email"), row.getString("full_name"), com.digitalgrader.users.Role.valueOf(row.getString("role")), row.getBoolean("email_verified")), id);
         return new Detail(c.id(), c.name(), c.instructorId(), c.startDate(), c.endDate(), members);
     }
 }

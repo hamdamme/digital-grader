@@ -13,7 +13,7 @@ import static org.mockito.Mockito.*;
 class RegistrationTest {
     @Test void rejectsPrivilegedSelfRegistrationBeforePersistence() {
         var users = mock(UserRepository.class);
-        var service = new RegistrationService(users, new BCryptPasswordEncoder(10));
+        var service = new RegistrationService(users, new BCryptPasswordEncoder(10), null, new com.digitalgrader.auth.LogMailer(), "http://127.0.0.1:5176");
         for (Role role : new Role[]{Role.ADMIN, Role.INSTRUCTOR})
             assertThatThrownBy(() -> service.register(new AuthRequests.Register("a@example.org", "long-password-123", "Test", role)))
                     .hasMessage("Only students can self-register");
@@ -30,17 +30,17 @@ class RegistrationTest {
     @Test void hashesPasswordBeforePersistence() {
         var users = mock(UserRepository.class);
         var encoder = new BCryptPasswordEncoder(10);
-        when(users.create(anyString(), anyString(), anyString(), any())).thenAnswer(call -> {
+        when(users.create(anyString(), anyString(), anyString(), any(), anyBoolean())).thenAnswer(call -> {
             String hash = call.getArgument(1);
             assertThat(hash).startsWith("$2a$10$");
             assertThat(encoder.matches("long-password-123", hash)).isTrue();
-            return new User(1, "a@example.org", hash, "Test", Role.STUDENT);
+            return new User(1, "a@example.org", hash, "Test", Role.STUDENT, false);
         });
-        var profile = new RegistrationService(users, encoder).register(new AuthRequests.Register("a@example.org", "long-password-123", "Test", Role.STUDENT));
+        var profile = new RegistrationService(users, encoder, null, new com.digitalgrader.auth.LogMailer(), "http://127.0.0.1:5176").register(new AuthRequests.Register("a@example.org", "long-password-123", "Test", Role.STUDENT));
         assertThat(profile.role()).isEqualTo(Role.STUDENT);
     }
     @Test void userSerializationNeverIncludesPasswordHash() throws Exception {
-        String json = new ObjectMapper().writeValueAsString(new User(1, "a@example.org", "private-hash", "Test", Role.STUDENT));
+        String json = new ObjectMapper().writeValueAsString(new User(1, "a@example.org", "private-hash", "Test", Role.STUDENT, false));
         assertThat(json).doesNotContain("private-hash", "passwordHash");
     }
 }

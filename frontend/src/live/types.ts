@@ -1,5 +1,11 @@
 export type Role = "STUDENT" | "INSTRUCTOR" | "ADMIN";
-export type User = { id: number; fullName: string; email: string; role: Role };
+export type User = {
+  id: number;
+  fullName: string;
+  email: string;
+  role: Role;
+  emailVerified: boolean;
+};
 export type Cohort = {
   id: number;
   name: string;

@@ -6,10 +6,12 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.HexFormat;
 import com.digitalgrader.common.ApiException;
 import com.digitalgrader.users.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,13 +23,19 @@ public class AuthService {
     private final PasswordEncoder passwords;
     private final TokenService tokens;
     private final JdbcTemplate jdbc;
+    private final EmailTokenService emailTokens;
+    private final Mailer mailer;
+    private final String baseUrl;
     private final Clock clock;
     private final SecureRandom random = new SecureRandom();
     private final String dummyHash;
     public record Tokens(String accessToken, String refreshToken, Role role) {}
 
-    public AuthService(UserRepository users, PasswordEncoder passwords, TokenService tokens, JdbcTemplate jdbc, Clock clock) {
-        this.users = users; this.passwords = passwords; this.tokens = tokens; this.jdbc = jdbc; this.clock = clock;
+    public AuthService(UserRepository users, PasswordEncoder passwords, TokenService tokens, JdbcTemplate jdbc,
+            EmailTokenService emailTokens, Mailer mailer,
+            @org.springframework.beans.factory.annotation.Value("${APP_BASE_URL:http://127.0.0.1:5176}") String baseUrl, Clock clock) {
+        this.users = users; this.passwords = passwords; this.tokens = tokens; this.jdbc = jdbc;
+        this.emailTokens = emailTokens; this.mailer = mailer; this.baseUrl = baseUrl; this.clock = clock;
         this.dummyHash = passwords.encode(java.util.UUID.randomUUID().toString());
     }
 
@@ -36,7 +44,26 @@ public class AuthService {
         var user = users.findByEmail(request.email());
         boolean matches = passwords.matches(request.password(), user.map(User::passwordHash).orElse(dummyHash));
         if (!matches || user.isEmpty()) throw ApiException.unauthorized();
+        if (!user.get().emailVerified()) throw new ApiException(HttpStatus.FORBIDDEN, "Verify your email address before signing in");
         return issue(user.get());
+    }
+    public void forgotPassword(String email) {
+        users.findByEmail(email).ifPresent(user -> {
+            String token = emailTokens.issue(user.id(), EmailTokenService.Purpose.PASSWORD_RESET, Duration.ofHours(1));
+            mailer.send(user.email(), "Reset your Digital Grader password",
+                    "Hello " + user.fullName() + ",\n\nReset your Digital Grader password by opening this link:\n\n"
+                            + baseUrl + "/#/reset-password?token=" + token + "\n\nThe link expires in 1 hour and works once. If you did not request this, ignore this message.");
+        });
+    }
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        long userId = emailTokens.consume(token, EmailTokenService.Purpose.PASSWORD_RESET);
+        jdbc.update("UPDATE users SET password_hash=? WHERE id=?", passwords.encode(newPassword), userId);
+        jdbc.update("DELETE FROM refresh_tokens WHERE user_id=?", userId);
+    }
+    public void verifyEmail(String token) {
+        users.findById(emailTokens.consume(token, EmailTokenService.Purpose.VERIFY_EMAIL))
+                .ifPresent(user -> users.markVerified(user.id()));
     }
     @Transactional
     public Tokens refresh(String token) {

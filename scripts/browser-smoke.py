@@ -71,7 +71,8 @@ try:
                SERVER_PORT=str(backend_port), SERVER_ADDRESS="127.0.0.1", CORS_ALLOWED_ORIGINS=f"http://127.0.0.1:{frontend_port}",
                API_PROXY_TARGET=f"http://127.0.0.1:{backend_port}", VITE_API_BASE_URL="/api/v1", SMOKE_BASE_URL=f"http://127.0.0.1:{frontend_port}",
                SMOKE_PASSWORD=secret, SMOKE_OUTPUT=str(RUN), SMOKE_DB_CONTAINER=containers[0],
-               SMOKE_REAL_GRADING="true" if args.grading else "false")
+               SMOKE_REAL_GRADING="true" if args.grading else "false",
+               SMOKE_BACKEND_LOG=str(RUN / "backend.log"))
     java_home = env.get("JAVA_HOME", "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home")
     java = str(Path(java_home) / "bin/java") if Path(java_home).exists() else "java"
     # Wait for database readiness before Spring creates its pool.

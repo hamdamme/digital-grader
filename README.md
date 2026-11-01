@@ -46,7 +46,7 @@ Public registration creates student accounts only. To provision the first admini
 
 ### Configuration
 
-`.env.example` lists the main application settings with notes. Notable groups: database (`DB_*`), broker (`RABBIT_*`), storage (`MINIO_*`), token signing and lifetimes (`JWT_*`), per-IP auth throttling (`RATE_LIMIT_*`), sandbox limits (`SANDBOX_*`) and the optional hint provider (`AI_*`, disabled by default). Missing database settings or a short `JWT_SECRET` fail startup before a connection pool is created.
+`.env.example` lists the main application settings with notes. Notable groups: database (`DB_*`), broker (`RABBIT_*`), storage (`MINIO_*`), token signing and lifetimes (`JWT_*`), per-IP auth throttling (`RATE_LIMIT_*`), transactional mail (`SMTP_*`, `APP_BASE_URL`), sandbox limits (`SANDBOX_*`) and the optional hint provider (`AI_*`, disabled by default). Missing database settings or a short `JWT_SECRET` fail startup before a connection pool is created.
 
 ## Grading worker
 

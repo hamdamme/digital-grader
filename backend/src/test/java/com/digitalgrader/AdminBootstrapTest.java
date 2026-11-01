@@ -32,12 +32,12 @@ class AdminBootstrapTest {
         try (var factory = Validation.buildDefaultValidatorFactory()) {
             var bootstrap = new AdminBootstrap(users, registration, factory.getValidator(), "admin@fixture.local", "fixture-password-123", "Admin");
             bootstrap.run(null);
-            verify(registration).create(argThat(request -> request.role() == Role.ADMIN));
+            verify(registration).create(argThat(request -> request.role() == Role.ADMIN), eq(true));
             clearInvocations(registration);
-            when(users.findByEmail("admin@fixture.local")).thenReturn(Optional.of(new User(1, "admin@fixture.local", "hash", "Admin", Role.ADMIN)));
+            when(users.findByEmail("admin@fixture.local")).thenReturn(Optional.of(new User(1, "admin@fixture.local", "hash", "Admin", Role.ADMIN, true)));
             bootstrap.run(null);
             verifyNoInteractions(registration);
-            when(users.findByEmail("admin@fixture.local")).thenReturn(Optional.of(new User(1, "admin@fixture.local", "hash", "Student", Role.STUDENT)));
+            when(users.findByEmail("admin@fixture.local")).thenReturn(Optional.of(new User(1, "admin@fixture.local", "hash", "Student", Role.STUDENT, true)));
             assertThatThrownBy(() -> bootstrap.run(null)).hasMessageContaining("non-admin");
             verifyNoInteractions(registration);
         }

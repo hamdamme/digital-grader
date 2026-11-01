@@ -98,6 +98,27 @@ export class ApiClient {
       body: JSON.stringify({ fullName, email, password, role: "STUDENT" }),
     });
   }
+  async verifyEmail(token: string) {
+    return this.send<void>("/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    });
+  }
+  async resendVerification() {
+    return this.request<void>("/auth/resend-verification", { method: "POST" });
+  }
+  async forgotPassword(email: string) {
+    return this.send<void>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  }
+  async resetPassword(token: string, password: string) {
+    return this.send<void>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    });
+  }
   async logout() {
     const token = this.tokens?.refreshToken;
     this.clear();

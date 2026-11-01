@@ -30,6 +30,6 @@ public class AdminBootstrap implements ApplicationRunner {
                 throw new IllegalStateException("Bootstrap email already belongs to a non-admin account");
             return; // Never reset credentials or elevate an existing account on restart.
         }
-        registration.create(request);
+        registration.create(request, true);
     }
 }

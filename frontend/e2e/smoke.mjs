@@ -1,6 +1,7 @@
 import { chromium, expect } from "@playwright/test";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 const base = process.env.SMOKE_BASE_URL;
 const password = process.env.SMOKE_PASSWORD;
 const output = process.env.SMOKE_OUTPUT;
@@ -52,8 +53,19 @@ try {
     .getByRole("button", { name: "Create account", exact: true })
     .click();
   await expect(
-    page.getByText("Your student account is ready. Sign in to continue."),
+    page.getByText(
+      "Account created. Check your inbox to verify your email address, then sign in.",
+    ),
   ).toBeVisible();
+  // No SMTP in this environment: the verification link is captured from the backend log.
+  const backendLog = readFileSync(process.env.SMOKE_BACKEND_LOG, "utf8");
+  const mailedTokens = [...backendLog.matchAll(/verify-email\?token=([A-Za-z0-9_-]{43})/g)];
+  const verifyToken = mailedTokens[mailedTokens.length - 1]?.[1];
+  expect(verifyToken).toBeTruthy();
+  const verified = await context.request.post("/api/v1/auth/verify-email", {
+    data: { token: verifyToken },
+  });
+  expect(verified.status()).toBe(204);
   await login("student@smoke.local");
   await expect(
     page.getByRole("heading", { name: "No cohorts yet" }),

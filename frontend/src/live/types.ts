@@ -14,6 +14,7 @@ export type Assignment = {
   description: string | null;
   dueDate: string | null;
   maxAttempts: number;
+  harness?: { uploadedAt: string; sizeBytes: number } | null;
   rubricJson: {
     weights: { tests: number; coverage: number; codeQuality: number };
     coverageThreshold: number;

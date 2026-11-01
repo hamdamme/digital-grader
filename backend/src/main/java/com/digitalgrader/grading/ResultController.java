@@ -29,6 +29,7 @@ public class ResultController {
         var row=rows.get(0); long result=((Number)row.get("id")).longValue();
         var response=new LinkedHashMap<String,Object>();
         response.put("submissionId",id); response.put("buildSuccess",row.get("build_success"));
+        response.put("harnessGraded",jdbc.queryForObject("SELECT graded_with_harness FROM submissions WHERE id=?",Boolean.class,id));
         response.put("testsTotal",row.get("tests_total")); response.put("testsPassed",row.get("tests_passed")); response.put("testsFailed",row.get("tests_failed")); response.put("testsFlaky",row.get("tests_flaky"));
         response.put("coverageLinePct",row.get("coverage_line_pct")); response.put("coverageBranchPct",row.get("coverage_branch_pct")); response.put("score",row.get("score")); response.put("gradedAt",row.get("graded_at").toString());
         try { response.put("rubricBreakdown",json.readTree(row.get("rubric_breakdown").toString())); }

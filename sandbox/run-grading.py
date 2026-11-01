@@ -83,8 +83,19 @@ def grade():
         # Ignore uploaded build products; reports must come from this attempt.
         if (root / "target").exists():
             shutil.rmtree(root / "target")
+        # Instructor-controlled tests replace student test sources when a harness is attached.
+        harness = Path("/input/harness.zip")
+        if harness.is_file():
+            with zipfile.ZipFile(harness) as harness_zip:
+                for entry in harness_zip.infolist():
+                    name = entry.filename.rstrip("/")
+                    if name and name != "src" and not name.startswith("src/test/"):
+                        raise ValueError("Harness entries must live under src/test/")
+            shutil.rmtree(root / "src" / "test", ignore_errors=True)
+            extract(harness, root)
         shutil.copytree("/opt/maven-cache", "/code/repository")
-        base = ["mvn", "-o", "-B", "-Dmaven.repo.local=/code/repository", "-DspotbugsXmlOutput=true"]
+        base = ["mvn", "-o", "-B", "-Dmaven.repo.local=/code/repository", "-DspotbugsXmlOutput=true",
+                "-Dmaven.test.skip=false", "-DskipTests=false"]
         def run(goals, log):
             remaining = max(1, deadline-time.monotonic())
             process = subprocess.Popen(base+goals, cwd=root, stdout=log, stderr=log, start_new_session=True)

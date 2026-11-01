@@ -15,7 +15,7 @@ class SandboxAcceptanceTest {
     @Test void runsSampleOfflineWithCoverageAndFailureReports() throws Exception {
         var sandbox=new DockerSandbox(new DockerCommand(),new ObjectMapper(),"digital-grader-student:local",180,1536,1);
         sandbox.verifyReady();
-        var result=sandbox.run(archive(false));
+        var result=sandbox.run(archive(false),null);
         assertThat(result.exitCode()).as(result.log()).isEqualTo(1);
         var tests=ReportParser.junit(result.junit());
         assertThat(tests).hasSize(2);
@@ -26,7 +26,7 @@ class SandboxAcceptanceTest {
     @Test void terminatesHangingProject() throws Exception {
         var sandbox=new DockerSandbox(new DockerCommand(),new ObjectMapper(),"digital-grader-student:local",15,1536,1);
         sandbox.verifyReady();
-        assertThat(sandbox.run(archive(true)).exitCode()).isEqualTo(124);
+        assertThat(sandbox.run(archive(true),null).exitCode()).isEqualTo(124);
     }
     private Path archive(boolean hang) throws Exception {
         Path root=Path.of("../sandbox/sample-project").toAbsolutePath().normalize();

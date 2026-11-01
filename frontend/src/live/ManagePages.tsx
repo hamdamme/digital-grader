@@ -141,6 +141,89 @@ export function CohortsPage() {
     </>
   );
 }
+function HarnessPanel({
+  assignment,
+  onChange,
+}: {
+  assignment: Assignment;
+  onChange: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function upload(file: File) {
+    setBusy(true);
+    setError("");
+    try {
+      const data = new FormData();
+      data.append("file", file);
+      await api.request(`/assignments/${assignment.id}/harness`, {
+        method: "PUT",
+        body: data,
+      });
+      onChange();
+    } catch (error) {
+      setError(message(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function remove() {
+    setBusy(true);
+    setError("");
+    try {
+      await api.request(`/assignments/${assignment.id}/harness`, {
+        method: "DELETE",
+      });
+      onChange();
+    } catch (error) {
+      setError(message(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="harness-panel">
+      <h3>Instructor test harness</h3>
+      {assignment.harness ? (
+        <p>
+          Attached · uploaded {date(assignment.harness.uploadedAt)} ·{" "}
+          {Math.max(1, Math.round(assignment.harness.sizeBytes / 1024))} KB
+        </p>
+      ) : (
+        <p>No harness attached. Submissions grade with the student's own tests.</p>
+      )}
+      <p className="notice">
+        When attached, new submissions are graded with these instructor tests;
+        student test sources are ignored.
+      </p>
+      <input
+        type="file"
+        accept=".zip,application/zip"
+        disabled={busy}
+        aria-label="Upload test harness ZIP"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) upload(file);
+          event.target.value = "";
+        }}
+      />
+      {assignment.harness && (
+        <button
+          className="studio-button secondary"
+          disabled={busy}
+          onClick={remove}
+        >
+          Remove harness
+        </button>
+      )}
+      {error && (
+        <p role="alert" className="live-alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 export function AssignmentsPage() {
   const { cohort, user } = useWorkspace();
   const assignments = useResource<Assignment[]>(
@@ -333,9 +416,12 @@ export function AssignmentsPage() {
                 {a.rubricJson.weights.codeQuality}%
               </p>
               {teacher ? (
-                <Link className="studio-button secondary" to="/results">
-                  View submissions
-                </Link>
+                <>
+                  <HarnessPanel assignment={a} onChange={assignments.reload} />
+                  <Link className="studio-button secondary" to="/results">
+                    View submissions
+                  </Link>
+                </>
               ) : (
                 <Link className="studio-button" to={`/submit/${a.id}`}>
                   Open assignment

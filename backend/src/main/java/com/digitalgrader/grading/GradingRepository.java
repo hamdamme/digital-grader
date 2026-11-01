@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class GradingRepository {
-    public record Job(long id,UUID token,String storagePath,Rubric rubric) {}
+    public record Job(long id,UUID token,String storagePath,String harnessPath,Rubric rubric) {}
     private final JdbcTemplate jdbc;
     private final ObjectMapper json;
     public GradingRepository(JdbcTemplate jdbc,ObjectMapper json) { this.jdbc=jdbc; this.json=json; }
@@ -20,8 +20,10 @@ public class GradingRepository {
         if (rows.isEmpty()) return Optional.empty();
         try {
             var row=rows.get(0);
-            String rubric=jdbc.queryForObject("SELECT rubric_json::text FROM assignments WHERE id=?",String.class,row.get("assignment_id"));
-            return Optional.of(new Job(id,token,(String)row.get("storage_path"),json.readValue(rubric,Rubric.class)));
+            var assignment=jdbc.queryForMap("SELECT rubric_json::text AS rubric,harness_path FROM assignments WHERE id=?",row.get("assignment_id"));
+            String rubric=(String)assignment.get("rubric");
+            String harness=(String)assignment.get("harness_path");
+            return Optional.of(new Job(id,token,(String)row.get("storage_path"),harness,json.readValue(rubric,Rubric.class)));
         } catch (java.io.IOException e) { throw new IllegalStateException("Invalid assignment rubric",e); }
     }
     @Transactional
@@ -32,7 +34,7 @@ public class GradingRepository {
             long result=jdbc.queryForObject("INSERT INTO grading_results(submission_id,build_success,build_log_path,tests_total,tests_passed,tests_failed,tests_flaky,coverage_line_pct,coverage_branch_pct,score,rubric_breakdown) VALUES (?,?,?,?,?,?,?,?,?,?,?::jsonb) RETURNING id",
                     Long.class,job.id(),buildSuccess,logKey,tests.size(),count(tests,"PASSED"),count(tests,"FAILED"),count(tests,"FLAKY"),coverage.line(),coverage.branch(),score.score(),json.writeValueAsString(score));
             for (var test:tests) jdbc.update("INSERT INTO test_case_results(grading_result_id,test_name,status,duration_ms,error_message,stack_trace) VALUES (?,?,?,?,?,?)",result,test.name(),test.status(),test.durationMs(),test.message(),test.stackTrace());
-            jdbc.update("UPDATE submissions SET status='GRADED',grading_token=NULL WHERE id=?",job.id());
+            jdbc.update("UPDATE submissions SET status='GRADED',grading_token=NULL,graded_with_harness=? WHERE id=?",job.harnessPath()!=null,job.id());
             jdbc.update("INSERT INTO security_outbox(submission_id) VALUES (?) ON CONFLICT DO NOTHING",job.id());
             return true;
         } catch (java.io.IOException e) { throw new IllegalStateException(e); }

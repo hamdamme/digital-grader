@@ -104,8 +104,11 @@ export class ApiClient {
       body: JSON.stringify({ token }),
     });
   }
-  async resendVerification() {
-    return this.request<void>("/auth/resend-verification", { method: "POST" });
+  async resendVerification(email: string) {
+    return this.send<void>("/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
   }
   async forgotPassword(email: string) {
     return this.send<void>("/auth/forgot-password", {

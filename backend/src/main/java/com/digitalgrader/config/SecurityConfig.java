@@ -47,9 +47,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login",
                                 "/api/v1/auth/refresh", "/api/v1/auth/logout", "/api/v1/auth/verify-email",
-                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
+                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
+                                "/api/v1/auth/resend-verification").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/resend-verification").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/cohorts/mine").authenticated()
                         .requestMatchers("/api/v1/cohorts", "/api/v1/cohorts/**").hasAnyRole("INSTRUCTOR", "ADMIN")
                         .requestMatchers("/api/v1/assignments", "/api/v1/assignments/**", "/api/v1/submissions", "/api/v1/submissions/**").authenticated()
@@ -84,6 +84,7 @@ public class SecurityConfig {
                 "/api/v1/auth/logout", new RateLimiter(logoutCapacity, Duration.ofSeconds(logoutWindowSeconds), clock),
                 "/api/v1/auth/verify-email", new RateLimiter(verifyCapacity, Duration.ofSeconds(verifyWindowSeconds), clock),
                 "/api/v1/auth/forgot-password", new RateLimiter(forgotCapacity, Duration.ofSeconds(forgotWindowSeconds), clock),
+                "/api/v1/auth/resend-verification", new RateLimiter(forgotCapacity, Duration.ofSeconds(forgotWindowSeconds), clock),
                 "/api/v1/auth/reset-password", new RateLimiter(verifyCapacity, Duration.ofSeconds(verifyWindowSeconds), clock)));
     }
     @Bean

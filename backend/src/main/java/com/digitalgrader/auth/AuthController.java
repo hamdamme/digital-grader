@@ -28,8 +28,8 @@ public class AuthController {
     @PostMapping("/verify-email") @ResponseStatus(HttpStatus.NO_CONTENT)
     public void verifyEmail(@Valid @RequestBody AuthRequests.TokenOnly request) { auth.verifyEmail(request.token()); }
     @PostMapping("/resend-verification") @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void resendVerification(@AuthenticationPrincipal User.Profile user) {
-        registration.sendVerification(users.findById(user.id()).orElseThrow(ApiException::unauthorized));
+    public void resendVerification(@Valid @RequestBody AuthRequests.ForgotPassword request) {
+        registration.resendVerification(request.email());
     }
     @PostMapping("/forgot-password") @ResponseStatus(HttpStatus.NO_CONTENT)
     public void forgotPassword(@Valid @RequestBody AuthRequests.ForgotPassword request) { auth.forgotPassword(request.email()); }

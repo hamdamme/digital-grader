@@ -118,7 +118,7 @@ export function Workspace({ user }: { user: User }) {
                     className="text-button"
                     onClick={() =>
                       void api
-                        .resendVerification()
+                        .resendVerification(user.email)
                         .then(() => setResent(true))
                         .catch((error) => setResendError(message(error)))
                     }

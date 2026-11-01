@@ -39,7 +39,7 @@ public class DockerSandbox implements Sandbox {
             imageId=inspect.out().strip();
         } catch (java.io.IOException e) { throw new IllegalStateException("Cannot verify sandbox runtime",e); }
     }
-    List<String> command(String name,Path archive) {
+    List<String> command(String name,Path archive,Path harness) {
         String input=archive.toAbsolutePath().toString();
         if (input.contains(",")) throw new IllegalArgumentException("Unsupported input path");
         var args=new ArrayList<>(List.of("docker","create","--name",name,"--runtime=runsc","--network=none","--read-only",
@@ -51,15 +51,20 @@ public class DockerSandbox implements Sandbox {
                 "--tmpfs=/tmp:rw,nosuid,nodev,size=67108864,uid=10001,gid=10001,mode=0700",
                 "--mount","type=bind,src="+input+",dst=/input/submission.zip,readonly",
                 "--env","GRADE_TIMEOUT="+timeout,"--label=digital-grader.sandbox=true"));
+        if (harness!=null) {
+            String tests=harness.toAbsolutePath().toString();
+            if (tests.contains(",")) throw new IllegalArgumentException("Unsupported harness path");
+            args.addAll(List.of("--mount","type=bind,src="+tests+",dst=/input/harness.zip,readonly"));
+        }
         if (referenceData!=null) args.addAll(List.of("--mount","type=bind,src="+referenceData+",dst=/input/reference-data,readonly"));
         args.add(imageId);
         return List.copyOf(args);
     }
-    @Override public Result run(Path archive) {
+    @Override public Result run(Path archive,Path harness) {
         if (imageId==null) throw new IllegalStateException("Sandbox readiness must be verified first");
         String name="digital-grader-grade-"+UUID.randomUUID();
         try {
-            require(docker.run(command(name,archive),Duration.ofSeconds(15),1024));
+            require(docker.run(command(name,archive,harness),Duration.ofSeconds(15),1024));
             require(docker.run(List.of("docker","start",name),Duration.ofSeconds(15),1024));
             DockerCommand.Output waited;
             try { waited=docker.run(List.of("docker","wait",name),Duration.ofSeconds(timeout+30),1024); }

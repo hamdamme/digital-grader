@@ -14,21 +14,26 @@ public class GradingService {
     public void grade(long id) {
         var claimed=jobs.claim(id);
         if (claimed.isEmpty()) return;
-        var job=claimed.get(); Path input=null; Path directory=null;
+        var job=claimed.get(); Path input=null; Path harness=null; Path directory=null;
         try {
             directory=Files.createTempDirectory("digital-grader-grade-");
             input=Files.createFile(directory.resolve("submission.zip"));
             storage.download(job.storagePath(),input);
             // The non-root container must be able to read this single, read-only mounted archive.
             Files.setPosixFilePermissions(input,java.nio.file.attribute.PosixFilePermissions.fromString("r--r--r--"));
-            var first=sandbox.run(input);
+            if (job.harnessPath()!=null) {
+                harness=Files.createFile(directory.resolve("harness.zip"));
+                storage.download(job.harnessPath(),harness);
+                Files.setPosixFilePermissions(harness,java.nio.file.attribute.PosixFilePermissions.fromString("r--r--r--"));
+            }
+            var first=sandbox.run(input,harness);
             if (first.exitCode()==124) { jobs.fail(job,true); return; }
             if (first.exitCode()==137) throw new IllegalStateException("Sandbox memory limit exceeded");
             var tests=ReportParser.junit(first.junit());
             String prefix="results/"+id+"/"+job.token()+"/";
             persistArtifacts(prefix+"first/",first);
             if (tests.stream().anyMatch(t -> t.status().equals("FAILED"))) {
-                var retry=sandbox.run(input);
+                var retry=sandbox.run(input,harness);
                 persistArtifacts(prefix+"retry/",retry);
                 if (retry.exitCode()==0 || retry.exitCode()==1) tests=Scoring.markFlaky(tests,ReportParser.junit(retry.junit()));
             }

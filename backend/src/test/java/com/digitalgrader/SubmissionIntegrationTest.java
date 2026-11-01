@@ -172,9 +172,9 @@ class SubmissionIntegrationTest {
         String first="<testsuite><testcase classname='C' name='pass'/><testcase classname='C' name='flaky'><failure message='fixture'/></testcase></testsuite>";
         String retry="<testsuite><testcase classname='C' name='pass'/><testcase classname='C' name='flaky'/></testsuite>";
         var coverage="<report><counter type='LINE' covered='3' missed='1'/></report>";
-        when(sandbox.run(any())).thenReturn(new com.digitalgrader.grading.Sandbox.Result(1,"first log",List.of(first),coverage,Map.of()),new com.digitalgrader.grading.Sandbox.Result(0,"retry log",List.of(retry),coverage,Map.of()));
+        when(sandbox.run(any(),any())).thenReturn(new com.digitalgrader.grading.Sandbox.Result(1,"first log",List.of(first),coverage,Map.of()),new com.digitalgrader.grading.Sandbox.Result(0,"retry log",List.of(retry),coverage,Map.of()));
         grading.grade(id); grading.grade(id);
-        verify(sandbox,times(2)).run(any());
+        verify(sandbox,times(2)).run(any(),any());
         assertThat(jdbc.queryForObject("SELECT status FROM submissions WHERE id=?",String.class,id)).isEqualTo("GRADED");
         assertThat(jdbc.queryForObject("SELECT tests_flaky FROM grading_results WHERE submission_id=?",Integer.class,id)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM security_outbox WHERE submission_id=?",Integer.class,id)).isEqualTo(1);
@@ -190,12 +190,12 @@ class SubmissionIntegrationTest {
     }
     @Test void workerTimeoutIsTerminalAndInfrastructureFailuresAreBounded() throws Exception {
         long timeoutId=accepted(upload(student,archive));
-        when(sandbox.run(any())).thenReturn(new com.digitalgrader.grading.Sandbox.Result(124,"timeout",List.of(),null,Map.of()));
+        when(sandbox.run(any(),any())).thenReturn(new com.digitalgrader.grading.Sandbox.Result(124,"timeout",List.of(),null,Map.of()));
         grading.grade(timeoutId);
         assertThat(jdbc.queryForObject("SELECT status FROM submissions WHERE id=?",String.class,timeoutId)).isEqualTo("TIMEOUT");
         assertThat(get("/submissions/"+timeoutId+"/result",student).getStatusCode().value()).isEqualTo(409);
         long failedId=accepted(upload(other,archive));
-        when(sandbox.run(any())).thenThrow(new IllegalStateException("fixture sandbox unavailable"));
+        when(sandbox.run(any(),any())).thenThrow(new IllegalStateException("fixture sandbox unavailable"));
         for (int i=0;i<4;i++) grading.grade(failedId);
         assertThat(jdbc.queryForObject("SELECT status FROM submissions WHERE id=?",String.class,failedId)).isEqualTo("FAILED");
         assertThat(jdbc.queryForObject("SELECT grading_attempts FROM submissions WHERE id=?",Integer.class,failedId)).isEqualTo(3);
@@ -378,9 +378,41 @@ class SubmissionIntegrationTest {
         assertThat(get("/cohorts/"+cohort+"/vulnerability-heatmap",teacher).getBody()).isEqualTo("[]");
         assertThat(json.readTree(get("/submissions?cohortId="+cohort,student).getBody()).get(0).get("findingCount").isNull()).isTrue();
     }
+    @Test void instructorHarnessReplacesStudentTestsAtGradingTime() throws Exception {
+        byte[] harness=ZipValidatorTest.zip("src/test/java/TeacherTest.java");
+        assertThat(attachHarness(student,harness).getStatusCode().value()).isEqualTo(403);
+        var attached=attachHarness(teacher,harness);
+        assertThat(attached.getStatusCode().value()).isEqualTo(200);
+        var info=json.readTree(attached.getBody());
+        assertThat(info.get("sizeBytes").asLong()).isEqualTo(harness.length);
+        assertThat(json.readTree(get("/assignments/"+assignment,teacher).getBody()).get("harness").get("sizeBytes").asLong()).isEqualTo(harness.length);
+        long first=accepted(upload(student,archive));
+        when(sandbox.run(any(),any())).thenReturn(new com.digitalgrader.grading.Sandbox.Result(0,"fixture",List.of("<testsuite><testcase name='teacher-pass'/></testsuite>"),null,Map.of()));
+        grading.grade(first);
+        verify(sandbox).run(any(),isNotNull());
+        assertThat(json.readTree(get("/submissions/"+first+"/result",teacher).getBody()).get("harnessGraded").asBoolean()).isTrue();
+        assertThat(deleteHarness(student).getStatusCode().value()).isEqualTo(403);
+        assertThat(deleteHarness(teacher).getStatusCode().value()).isEqualTo(204);
+        assertThat(json.readTree(get("/assignments/"+assignment,teacher).getBody()).get("harness").isNull()).isTrue();
+        clearInvocations(sandbox);
+        long second=accepted(upload(student,archive));
+        grading.grade(second);
+        verify(sandbox).run(any(),isNull());
+        assertThat(json.readTree(get("/submissions/"+second+"/result",teacher).getBody()).get("harnessGraded").asBoolean()).isFalse();
+    }
+    private ResponseEntity<String> attachHarness(User user,byte[] bytes) {
+        var headers=new HttpHeaders(); headers.setBearerAuth(sessionToken(user)); headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        var body=new LinkedMultiValueMap<String,Object>();
+        body.add("file",new ByteArrayResource(bytes) { @Override public String getFilename() { return "harness.zip"; } });
+        return http.exchange("/api/v1/assignments/"+assignment+"/harness",HttpMethod.PUT,new HttpEntity<>(body,headers),String.class);
+    }
+    private ResponseEntity<String> deleteHarness(User user) {
+        var headers=new HttpHeaders(); headers.setBearerAuth(sessionToken(user));
+        return http.exchange("/api/v1/assignments/"+assignment+"/harness",HttpMethod.DELETE,new HttpEntity<>(headers),String.class);
+    }
     private long gradedSubmission() throws Exception {
         long id=accepted(upload(student,archive));
-        when(sandbox.run(any())).thenReturn(new com.digitalgrader.grading.Sandbox.Result(0,"fixture",List.of("<testsuite><testcase name='pass'/></testsuite>"),null,Map.of()));
+        when(sandbox.run(any(),any())).thenReturn(new com.digitalgrader.grading.Sandbox.Result(0,"fixture",List.of("<testsuite><testcase name='pass'/></testsuite>"),null,Map.of()));
         grading.grade(id);return id;
     }
     private ResponseEntity<String> hint(long id,User user) {

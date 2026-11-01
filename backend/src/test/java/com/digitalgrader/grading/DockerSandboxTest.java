@@ -21,11 +21,11 @@ class DockerSandboxTest {
         });
         var sandbox=new DockerSandbox(docker,new ObjectMapper(),"digital-grader-student:local",30,1536,1);
         sandbox.verifyReady();
-        var args=sandbox.command("fixture",Path.of("/tmp/fixture.zip"));
+        var args=sandbox.command("fixture",Path.of("/tmp/fixture.zip"),null);
         assertThat(args).contains("--runtime=runsc","--network=none","--read-only","--cap-drop=ALL","--security-opt=no-new-privileges","--user=10001:10001","--pids-limit=256","--memory=1536m","--memory-swap=1536m","--cpus=1.0");
         assertThat(args).anyMatch(a -> a.startsWith("--tmpfs=/output:")).contains("type=bind,src=/tmp/fixture.zip,dst=/input/submission.zip,readonly");
         assertThat(args).doesNotContain("--privileged","--network=host","/var/run/docker.sock");
-        assertThat(sandbox.run(Path.of("/tmp/fixture.zip")).exitCode()).isEqualTo(124);
+        assertThat(sandbox.run(Path.of("/tmp/fixture.zip"),null).exitCode()).isEqualTo(124);
         verify(docker).run(argThat(a -> a.get(1).equals("rm") && a.contains("--force")),any(),anyInt());
     }
     @Test void infrastructureFailureIsNotReportedAsStudentTimeout() {
@@ -41,7 +41,7 @@ class DockerSandboxTest {
         });
         var sandbox=new DockerSandbox(docker,new ObjectMapper(),"digital-grader-student:local",30,1536,1);
         sandbox.verifyReady();
-        assertThatThrownBy(() -> sandbox.run(Path.of("/tmp/fixture.zip"))).hasMessage("Docker unavailable");
+        assertThatThrownBy(() -> sandbox.run(Path.of("/tmp/fixture.zip"),null)).hasMessage("Docker unavailable");
         verify(docker).run(argThat(a -> a.get(1).equals("rm") && a.contains("--force")),any(),anyInt());
     }
     @Test void mountsReferenceDataReadOnlyInsideTheSameIsolationBoundary() throws Exception {
@@ -54,7 +54,7 @@ class DockerSandboxTest {
             });
             var sandbox=new DockerSandbox(docker,new ObjectMapper(),"fixture",30,4096,1,database);
             sandbox.verifyReady();
-            var args=sandbox.command("fixture",Path.of("/tmp/input.zip"));
+            var args=sandbox.command("fixture",Path.of("/tmp/input.zip"),null);
             assertThat(args).contains("type=bind,src="+database+",dst=/input/reference-data,readonly","--network=none","--runtime=runsc");
         } finally { java.nio.file.Files.delete(database); }
     }
@@ -63,5 +63,22 @@ class DockerSandboxTest {
         assertThatThrownBy(() -> new DockerSandbox(docker,new ObjectMapper(),"--privileged",30,1536,1)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new DockerSandbox(docker,new ObjectMapper(),"image",601,1536,1)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> new DockerSandbox(docker,new ObjectMapper(),"image",30,1536,Double.NaN)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test void mountsHarnessReadOnlyAlongsideSubmission() {
+        var docker=mock(DockerCommand.class);
+        when(docker.run(anyList(),any(),anyInt())).thenAnswer(call -> {
+            List<String> args=call.getArgument(0);
+            return switch(args.get(1)) {
+                case "info" -> new DockerCommand.Output(0,"{\"runsc\":{}}");
+                case "image" -> new DockerCommand.Output(0,"sha256:"+"a".repeat(64));
+                default -> new DockerCommand.Output(0,"");
+            };
+        });
+        var sandbox=new DockerSandbox(docker,new ObjectMapper(),"digital-grader-student:local",30,1536,1);
+        sandbox.verifyReady();
+        var args=sandbox.command("fixture",Path.of("/tmp/fixture.zip"),Path.of("/tmp/harness.zip"));
+        assertThat(args).contains("type=bind,src=/tmp/fixture.zip,dst=/input/submission.zip,readonly",
+                "type=bind,src=/tmp/harness.zip,dst=/input/harness.zip,readonly");
     }
 }

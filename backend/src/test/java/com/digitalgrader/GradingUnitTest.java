@@ -42,7 +42,7 @@ class GradingUnitTest {
         when(docker.run(anyList(),any(),anyInt())).thenReturn(new DockerCommand.Output(0,"{\"runc\":{}}"));
         var sandbox=new DockerSandbox(docker,new ObjectMapper(),"digital-grader-student:local",30,1536,1);
         assertThatThrownBy(sandbox::verifyReady).hasMessageContaining("runsc");
-        assertThatThrownBy(() -> sandbox.run(java.nio.file.Path.of("fixture.zip"))).hasMessageContaining("readiness");
+        assertThatThrownBy(() -> sandbox.run(java.nio.file.Path.of("fixture.zip"),null)).hasMessageContaining("readiness");
         verify(docker,times(1)).run(anyList(),any(),anyInt());
     }
     @Test void coverageThresholdGatesOnlyCoverageCredit() {

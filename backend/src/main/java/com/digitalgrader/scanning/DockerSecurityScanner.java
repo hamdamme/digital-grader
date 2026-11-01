@@ -29,7 +29,7 @@ public class DockerSecurityScanner implements SecurityScanner {
         } catch (java.io.IOException | NumberFormatException e) { throw new IllegalStateException("A current security database is required",e); }
     }
     public List<ScanReports.Finding> scan(Path archive) {
-        var result=sandbox.run(archive);
+        var result=sandbox.run(archive,null);
         if (result.exitCode()!=0) throw new IllegalStateException("Security scan did not complete");
         return ScanReports.parse(json,result.quality().get("semgrep"),result.quality().get("dependency-check"));
     }

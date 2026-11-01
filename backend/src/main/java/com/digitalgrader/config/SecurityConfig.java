@@ -4,10 +4,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.net.URI;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Clock;
+import java.time.Duration;
 import com.digitalgrader.auth.JwtFilter;
 import com.digitalgrader.auth.AuthService;
+import com.digitalgrader.auth.AuthRateLimitFilter;
 import com.digitalgrader.auth.TokenService;
 import com.digitalgrader.common.ApiErrors;
+import com.digitalgrader.common.RateLimiter;
 import com.digitalgrader.users.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +33,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, TokenService tokens, UserRepository users, AuthService sessions,
-            ObjectMapper mapper, UrlBasedCorsConfigurationSource cors) throws Exception {
+            ObjectMapper mapper, UrlBasedCorsConfigurationSource cors, AuthRateLimitFilter rateLimits) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
                 .cors(config -> config.configurationSource(cors))
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -52,8 +56,26 @@ public class SecurityConfig {
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, error) -> ApiErrors.write(mapper, response, HttpStatus.UNAUTHORIZED))
                         .accessDeniedHandler((request, response, error) -> ApiErrors.write(mapper, response, HttpStatus.FORBIDDEN)))
+                .addFilterBefore(rateLimits, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new JwtFilter(tokens, users, mapper, sessions), UsernamePasswordAuthenticationFilter.class)
                 .build();
+    }
+    @Bean
+    AuthRateLimitFilter authRateLimitFilter(ObjectMapper mapper,
+            @Value("${RATE_LIMIT_LOGIN_CAPACITY:10}") int loginCapacity,
+            @Value("${RATE_LIMIT_LOGIN_WINDOW_SECONDS:300}") long loginWindowSeconds,
+            @Value("${RATE_LIMIT_REGISTER_CAPACITY:10}") int registerCapacity,
+            @Value("${RATE_LIMIT_REGISTER_WINDOW_SECONDS:3600}") long registerWindowSeconds,
+            @Value("${RATE_LIMIT_REFRESH_CAPACITY:60}") int refreshCapacity,
+            @Value("${RATE_LIMIT_REFRESH_WINDOW_SECONDS:60}") long refreshWindowSeconds,
+            @Value("${RATE_LIMIT_LOGOUT_CAPACITY:60}") int logoutCapacity,
+            @Value("${RATE_LIMIT_LOGOUT_WINDOW_SECONDS:60}") long logoutWindowSeconds) {
+        Clock clock = Clock.systemUTC();
+        return new AuthRateLimitFilter(mapper, java.util.Map.of(
+                "/api/v1/auth/login", new RateLimiter(loginCapacity, Duration.ofSeconds(loginWindowSeconds), clock),
+                "/api/v1/auth/register", new RateLimiter(registerCapacity, Duration.ofSeconds(registerWindowSeconds), clock),
+                "/api/v1/auth/refresh", new RateLimiter(refreshCapacity, Duration.ofSeconds(refreshWindowSeconds), clock),
+                "/api/v1/auth/logout", new RateLimiter(logoutCapacity, Duration.ofSeconds(logoutWindowSeconds), clock)));
     }
     @Bean
     UrlBasedCorsConfigurationSource corsConfigurationSource(

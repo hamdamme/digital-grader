@@ -22,4 +22,13 @@ public final class AuthRequests {
         }
     }
     public record Refresh(@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{43}") String refreshToken) {}
+    public record TokenOnly(@NotBlank String token) {}
+    public record ForgotPassword(@NotBlank @Email @Size(max=255) String email) {}
+    public record ResetPassword(@NotBlank String token,
+            @NotBlank @Size(min=12, max=72) String password) {
+        @JsonIgnore @AssertTrue
+        public boolean isPasswordWithinBcryptLimit() {
+            return password == null || password.getBytes(StandardCharsets.UTF_8).length <= 72;
+        }
+    }
 }

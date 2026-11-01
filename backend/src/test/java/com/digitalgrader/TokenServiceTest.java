@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.*;
 class TokenServiceTest {
     private static final String SECRET = "test-only-key-".repeat(6);
     private static final Clock NOW = Clock.fixed(Instant.parse("2026-10-09T10:00:00Z"), ZoneOffset.UTC);
-    private static final User USER = new User(12, "fixture@example.org", "hash", "Fixture", Role.INSTRUCTOR);
+    private static final User USER = new User(12, "fixture@example.org", "hash", "Fixture", Role.INSTRUCTOR, true);
     @Test void signsAndVerifiesExpectedClaims() {
         var tokens = new TokenService(SECRET, 60, 7, NOW);
         var claims = tokens.verify(tokens.issue(USER, "a".repeat(64)));

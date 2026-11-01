@@ -17,6 +17,6 @@ public class AdminUserController {
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
     public User.Profile create(@Valid @RequestBody AuthRequests.Register request) {
         if (request.role() == Role.ADMIN) throw new ApiException(HttpStatus.FORBIDDEN, "Admin creation is unavailable through this endpoint");
-        return registration.create(request);
+        return registration.create(request, true);
     }
 }

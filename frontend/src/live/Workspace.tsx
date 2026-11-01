@@ -15,6 +15,8 @@ export function Workspace({ user }: { user: User }) {
   const cohort =
     cohorts.data?.find((c) => String(c.id) === selected) ?? cohorts.data?.[0];
   const teacher = user.role !== "STUDENT";
+  const [resent, setResent] = useState(false);
+  const [resendError, setResendError] = useState("");
   const main = useRef<HTMLElement>(null);
   const location = useLocation();
   useEffect(() => {
@@ -103,6 +105,29 @@ export function Workspace({ user }: { user: User }) {
             <span className="demo-tag">CONNECTED WORKSPACE</span>
           </header>
           <main id="main" ref={main} tabIndex={-1} className="studio-main">
+            {!user.emailVerified && (
+              <div className="live-alert" role="status">
+                <span>
+                  {resent
+                    ? "A fresh verification link is on its way to your inbox."
+                    : "Verify your email address to keep your account recoverable."}
+                  {resendError ? ` ${resendError}` : ""}
+                </span>
+                {!resent && (
+                  <button
+                    className="text-button"
+                    onClick={() =>
+                      void api
+                        .resendVerification()
+                        .then(() => setResent(true))
+                        .catch((error) => setResendError(message(error)))
+                    }
+                  >
+                    Resend verification email
+                  </button>
+                )}
+              </div>
+            )}
             {!cohorts.data ? (
               <LoadState error={cohorts.error} retry={cohorts.reload} />
             ) : (

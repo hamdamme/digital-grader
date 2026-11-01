@@ -236,7 +236,7 @@ class AuthIntegrationTest {
     private Map<String,Object> assignmentBody(long cohort,int tests) {
         return Map.of("cohortId",cohort,"title","Exercise","rubricJson",Map.of("weights",Map.of("tests",tests,"coverage",20,"codeQuality",20),"coverageThreshold",70,"qualityChecks",List.of("checkstyle","spotbugs")));
     }
-    private User fixture(String email, Role role) { return users.create(email, passwords.encode(PASSWORD), "Fixture", role); }
+    private User fixture(String email, Role role) { return users.create(email, passwords.encode(PASSWORD), "Fixture", role, true); }
     private Map<String, String> registration(String email, String role) { return Map.of("email", email, "password", PASSWORD, "fullName", "Fixture", "role", role); }
     private AuthService.Tokens login(String email) {
         var response = http.postForEntity("/api/v1/auth/login", Map.of("email", email, "password", PASSWORD), AuthService.Tokens.class);

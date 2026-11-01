@@ -100,7 +100,7 @@ class AuthRateLimitIntegrationTest {
             assertThat(get("/auth/me", token).getStatusCode().value()).isEqualTo(200);
     }
     private User fixture(String email) {
-        return users.create(email, passwords.encode(PASSWORD), "Fixture", Role.STUDENT);
+        return users.create(email, passwords.encode(PASSWORD), "Fixture", Role.STUDENT, true);
     }
     static final String PASSWORD = "fixture-password-123";
     private String sessionToken(User user) {

@@ -46,8 +46,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/register", "/api/v1/auth/login",
-                                "/api/v1/auth/refresh", "/api/v1/auth/logout").permitAll()
+                                "/api/v1/auth/refresh", "/api/v1/auth/logout", "/api/v1/auth/verify-email",
+                                "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/resend-verification").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/cohorts/mine").authenticated()
                         .requestMatchers("/api/v1/cohorts", "/api/v1/cohorts/**").hasAnyRole("INSTRUCTOR", "ADMIN")
                         .requestMatchers("/api/v1/assignments", "/api/v1/assignments/**", "/api/v1/submissions", "/api/v1/submissions/**").authenticated()
@@ -69,13 +71,20 @@ public class SecurityConfig {
             @Value("${RATE_LIMIT_REFRESH_CAPACITY:60}") int refreshCapacity,
             @Value("${RATE_LIMIT_REFRESH_WINDOW_SECONDS:60}") long refreshWindowSeconds,
             @Value("${RATE_LIMIT_LOGOUT_CAPACITY:60}") int logoutCapacity,
-            @Value("${RATE_LIMIT_LOGOUT_WINDOW_SECONDS:60}") long logoutWindowSeconds) {
+            @Value("${RATE_LIMIT_LOGOUT_WINDOW_SECONDS:60}") long logoutWindowSeconds,
+            @Value("${RATE_LIMIT_VERIFY_CAPACITY:10}") int verifyCapacity,
+            @Value("${RATE_LIMIT_VERIFY_WINDOW_SECONDS:600}") long verifyWindowSeconds,
+            @Value("${RATE_LIMIT_FORGOT_CAPACITY:3}") int forgotCapacity,
+            @Value("${RATE_LIMIT_FORGOT_WINDOW_SECONDS:3600}") long forgotWindowSeconds) {
         Clock clock = Clock.systemUTC();
         return new AuthRateLimitFilter(mapper, java.util.Map.of(
                 "/api/v1/auth/login", new RateLimiter(loginCapacity, Duration.ofSeconds(loginWindowSeconds), clock),
                 "/api/v1/auth/register", new RateLimiter(registerCapacity, Duration.ofSeconds(registerWindowSeconds), clock),
                 "/api/v1/auth/refresh", new RateLimiter(refreshCapacity, Duration.ofSeconds(refreshWindowSeconds), clock),
-                "/api/v1/auth/logout", new RateLimiter(logoutCapacity, Duration.ofSeconds(logoutWindowSeconds), clock)));
+                "/api/v1/auth/logout", new RateLimiter(logoutCapacity, Duration.ofSeconds(logoutWindowSeconds), clock),
+                "/api/v1/auth/verify-email", new RateLimiter(verifyCapacity, Duration.ofSeconds(verifyWindowSeconds), clock),
+                "/api/v1/auth/forgot-password", new RateLimiter(forgotCapacity, Duration.ofSeconds(forgotWindowSeconds), clock),
+                "/api/v1/auth/reset-password", new RateLimiter(verifyCapacity, Duration.ofSeconds(verifyWindowSeconds), clock)));
     }
     @Bean
     UrlBasedCorsConfigurationSource corsConfigurationSource(

@@ -70,9 +70,9 @@ class SubmissionIntegrationTest {
     byte[] archive;
     @BeforeEach void setup() throws Exception {
         jdbc.execute("TRUNCATE users CASCADE");
-        teacher=users.create("teacher@fixture.local","unused","Teacher",Role.INSTRUCTOR);
-        student=users.create("student@fixture.local","unused","Student",Role.STUDENT);
-        other=users.create("other@fixture.local","unused","Other",Role.STUDENT);
+        teacher=users.create("teacher@fixture.local","unused","Teacher",Role.INSTRUCTOR, true);
+        student=users.create("student@fixture.local","unused","Student",Role.STUDENT, true);
+        other=users.create("other@fixture.local","unused","Other",Role.STUDENT, true);
         long cohort=jdbc.queryForObject("INSERT INTO cohorts(name,instructor_id,start_date,end_date) VALUES ('Java',?,'2026-10-01','2027-03-31') RETURNING id",Long.class,teacher.id());
         jdbc.update("INSERT INTO cohort_members(cohort_id,student_id) VALUES (?,?),(?,?)",cohort,student.id(),cohort,other.id());
         assignment=jdbc.queryForObject("INSERT INTO assignments(cohort_id,title,rubric_json) VALUES (?,'Fixture','{\"weights\":{\"tests\":60,\"coverage\":20,\"codeQuality\":20},\"coverageThreshold\":70,\"qualityChecks\":[]}'::jsonb) RETURNING id",Long.class,cohort);
@@ -101,7 +101,7 @@ class SubmissionIntegrationTest {
         assertThat(get("/submissions/"+id,other).getStatusCode().value()).isEqualTo(403);
         assertThat(get("/submissions/"+id+"/download",other).getStatusCode().value()).isEqualTo(403);
         assertThat(get("/submissions/"+id,teacher).getStatusCode().value()).isEqualTo(200);
-        var stranger=users.create("stranger@fixture.local","unused","Stranger",Role.INSTRUCTOR);
+        var stranger=users.create("stranger@fixture.local","unused","Stranger",Role.INSTRUCTOR, true);
         assertThat(get("/submissions/"+id,stranger).getStatusCode().value()).isEqualTo(403);
         assertThat(upload(teacher,archive).getStatusCode().value()).isEqualTo(403);
         assertThat(get("/assignments/"+assignment+"/mysubmissions",other).getBody()).isEqualTo("[]");
@@ -304,7 +304,7 @@ class SubmissionIntegrationTest {
         var own=json.readTree(get("/submissions?cohortId="+cohort,student).getBody());
         assertThat(own.size()).isEqualTo(1); assertThat(own.get(0).get("id").asLong()).isEqualTo(mine);
         assertThat(json.readTree(get("/submissions?cohortId="+cohort,teacher).getBody()).size()).isEqualTo(2);
-        var stranger=users.create("outside@fixture.local","unused","Outside",Role.INSTRUCTOR);
+        var stranger=users.create("outside@fixture.local","unused","Outside",Role.INSTRUCTOR, true);
         assertThat(get("/cohorts/mine",stranger).getBody()).isEqualTo("[]");
         assertThat(get("/submissions?cohortId="+cohort,stranger).getStatusCode().value()).isEqualTo(403);
         jdbc.update("DELETE FROM cohort_members WHERE student_id=?",other.id());
@@ -331,7 +331,7 @@ class SubmissionIntegrationTest {
         assertThat(override(id,teacher,80,java.math.BigDecimal.ZERO,"Waiting").getStatusCode().value()).isEqualTo(409);
         id=gradedSubmission();
         assertThat(override(id,student,80,java.math.BigDecimal.ZERO,"Unauthorized").getStatusCode().value()).isEqualTo(403);
-        var stranger=users.create("stranger@fixture.local","unused","Stranger",Role.INSTRUCTOR);
+        var stranger=users.create("stranger@fixture.local","unused","Stranger",Role.INSTRUCTOR, true);
         assertThat(override(id,stranger,80,java.math.BigDecimal.ZERO,"Unauthorized").getStatusCode().value()).isEqualTo(403);
         assertThat(override(id,teacher,101,java.math.BigDecimal.ZERO,"Invalid").getStatusCode().value()).isEqualTo(400);
         assertThat(override(id,teacher,80,java.math.BigDecimal.ZERO,"  ").getStatusCode().value()).isEqualTo(400);
@@ -372,7 +372,7 @@ class SubmissionIntegrationTest {
         assertThat(heatmap.get(0).get("cweId").asText()).isEqualTo("CWE-798");
         assertThat(heatmap.get(0).get("count").asInt()).isEqualTo(1);
         assertThat(get("/cohorts/"+cohort+"/dashboard",student).getStatusCode().value()).isEqualTo(403);
-        var stranger=users.create("dashboard@fixture.local","unused","Outside",Role.INSTRUCTOR);
+        var stranger=users.create("dashboard@fixture.local","unused","Outside",Role.INSTRUCTOR, true);
         assertThat(get("/cohorts/"+cohort+"/vulnerability-heatmap",stranger).getStatusCode().value()).isEqualTo(403);
         jdbc.update("UPDATE security_outbox SET status='FAILED' WHERE submission_id=?",id);
         assertThat(get("/cohorts/"+cohort+"/vulnerability-heatmap",teacher).getBody()).isEqualTo("[]");

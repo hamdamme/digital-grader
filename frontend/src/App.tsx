@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 import { Link, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { DemoApp } from "./DemoApp";
 import { api } from "./live/api";
-import { AuthPage } from "./live/AuthPage";
+import { AuthPage, VerifyEmailPage } from "./live/AuthPage";
 import { Workspace } from "./live/Workspace";
 import { Overview } from "./live/Overview";
 import { AssignmentsPage, CohortsPage } from "./live/ManagePages";
@@ -18,7 +18,13 @@ export function App() {
     <Routes>
       <Route path="demo/*" element={<DemoApp />} />
       {!user ? (
-        <Route path="*" element={<AuthPage />} />
+        <>
+          <Route path="verify-email" element={<VerifyEmailPage />} />
+          <Route path="forgot-password" element={<AuthPage mode="forgot" />} />
+          <Route path="reset-password" element={<AuthPage mode="reset" />} />
+          <Route path="register" element={<AuthPage mode="register" />} />
+          <Route path="*" element={<AuthPage />} />
+        </>
       ) : (
         <Route element={<Workspace key={user.id} user={user} />}>
           <Route

@@ -30,7 +30,7 @@ class ChatHintProviderTest {
             assertThat(provider.generate("{\"failingTests\":[]}").model()).isEqualTo("fixture-model");
             var request=json.readTree(body.get());
             assertThat(request.path("messages").get(1).path("content").asText()).isEqualTo("{\"failingTests\":[]}");
-            assertThat(request.path(tokenField).asInt()).isEqualTo(400);
+            assertThat(request.path(tokenField).asInt()).isEqualTo(800);
             assertThat(request.has(absentField)).isFalse();
             assertThat(auth.get()).isEqualTo("Bearer fixture-key");
         } finally { server.stop(0); }

@@ -37,7 +37,7 @@ public class ChatHintProvider implements HintProvider {
         if (!enabled) throw unavailable();
         if (context==null || context.length()>16000) throw unavailable();
         try {
-            var payload=Map.of("model",model,"stream",false,tokenField,400,
+            var payload=Map.of("model",model,"stream",false,tokenField,800,
                     "messages",List.of(Map.of("role","system","content",INSTRUCTIONS),Map.of("role","user","content",context)));
             var builder=new Request.Builder().url(endpoint.toString()).post(RequestBody.create(json.writeValueAsBytes(payload),MediaType.get("application/json")));
             if (!key.isBlank()) builder.header("Authorization","Bearer "+key);

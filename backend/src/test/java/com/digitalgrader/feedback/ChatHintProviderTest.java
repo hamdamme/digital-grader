@@ -35,6 +35,38 @@ class ChatHintProviderTest {
             assertThat(auth.get()).isEqualTo("Bearer fixture-key");
         } finally { server.stop(0); }
     }
+    @Test void retriesOnceWhenTheFirstReplyIsUnusable() throws Exception {
+        var calls=new java.util.concurrent.atomic.AtomicInteger();
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        server.createContext("/v1/chat/completions",exchange -> {
+            calls.incrementAndGet();
+            byte[] response=(calls.get()==1
+                    ? "{\"choices\":[{\"finish_reason\":\"stop\",\"message\":{\"content\":\"public void solve() { return; }\"}}]}"
+                    : "{\"choices\":[{\"finish_reason\":\"stop\",\"message\":{\"content\":\"Compare the expected value with the actual result.\"}}]}").getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200,response.length);exchange.getResponseBody().write(response);exchange.close();
+        });
+        server.start();
+        try {
+            var provider=new ChatHintProvider(new ObjectMapper(),true,"http://127.0.0.1:"+server.getAddress().getPort()+"/v1","key","fixture-model","openai");
+            assertThat(provider.generate("{}").content()).isEqualTo("Compare the expected value with the actual result.");
+            assertThat(calls.get()).isEqualTo(2);
+        } finally { server.stop(0); }
+    }
+    @Test void givesUpWhenBothRepliesAreUnusable() throws Exception {
+        var calls=new java.util.concurrent.atomic.AtomicInteger();
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        server.createContext("/v1/chat/completions",exchange -> {
+            calls.incrementAndGet();
+            byte[] response="{\"choices\":[{\"finish_reason\":\"stop\",\"message\":{\"content\":\"try { return answer; }\"}}]}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200,response.length);exchange.getResponseBody().write(response);exchange.close();
+        });
+        server.start();
+        try {
+            var provider=new ChatHintProvider(new ObjectMapper(),true,"http://127.0.0.1:"+server.getAddress().getPort()+"/v1","key","fixture-model","openai");
+            assertThatThrownBy(() -> provider.generate("{}")).hasMessage("Hint service is unavailable; try again later");
+            assertThat(calls.get()).isEqualTo(2);
+        } finally { server.stop(0); }
+    }
     @Test void disabledOrUnavailableProviderFailsWithoutLeakingDetails() {
         var disabled=new ChatHintProvider(new ObjectMapper(),false,"http://127.0.0.1:1/v1","","fixture","ollama");
         assertThatThrownBy(() -> disabled.generate("{}")).hasMessage("Hint service is unavailable; try again later");

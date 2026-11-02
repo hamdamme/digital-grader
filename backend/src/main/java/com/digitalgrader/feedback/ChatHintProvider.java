@@ -36,6 +36,16 @@ public class ChatHintProvider implements HintProvider {
     @Override public Reply generate(String context) {
         if (!enabled) throw unavailable();
         if (context==null || context.length()>16000) throw unavailable();
+        for (int attempt=0; attempt<2; attempt++) {
+            try {
+                return call(context);
+            } catch (Exception ignored) {
+                // A single unusable reply is common with reasoning models; one fresh attempt usually settles it.
+            }
+        }
+        throw unavailable();
+    }
+    private Reply call(String context) {
         try {
             var payload=Map.of("model",model,"stream",false,tokenField,800,
                     "messages",List.of(Map.of("role","system","content",INSTRUCTIONS),Map.of("role","user","content",context)));

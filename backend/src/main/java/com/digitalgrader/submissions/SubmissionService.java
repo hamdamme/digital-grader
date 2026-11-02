@@ -26,7 +26,11 @@ public class SubmissionService {
     private final AssignmentService assignments;
     private final StorageService storage;
     private final Clock clock;
-    public SubmissionService(JdbcTemplate jdbc, AssignmentService assignments, StorageService storage, Clock clock) { this.jdbc=jdbc; this.assignments=assignments; this.storage=storage; this.clock=clock; }
+    private final int maxPending;
+    public SubmissionService(JdbcTemplate jdbc, AssignmentService assignments, StorageService storage, Clock clock,
+            @org.springframework.beans.factory.annotation.Value("${SUBMISSION_MAX_PENDING:3}") int maxPending) {
+        this.jdbc=jdbc; this.assignments=assignments; this.storage=storage; this.clock=clock; this.maxPending=maxPending;
+    }
     public void requireStudentAssignment(long id, User.Profile user) {
         if (user.role()!=Role.STUDENT) throw new ApiException(HttpStatus.FORBIDDEN,"Only students can submit");
         assignments.get(id,user);
@@ -40,6 +44,8 @@ public class SubmissionService {
         if (assignment.dueDate()!=null && !clock.instant().isBefore(assignment.dueDate())) throw new ApiException(HttpStatus.CONFLICT,"Assignment deadline has passed");
         int attempt=jdbc.queryForObject("SELECT coalesce(max(attempt_number),0)+1 FROM submissions WHERE assignment_id=? AND student_id=?",Integer.class,id,user.id());
         if (attempt>assignment.maxAttempts()) throw new ApiException(HttpStatus.CONFLICT,"Maximum submission attempts reached");
+        int pending=jdbc.queryForObject("SELECT count(*) FROM submissions WHERE assignment_id=? AND student_id=? AND status IN ('QUEUED','RUNNING')",Integer.class,id,user.id());
+        if (pending>=maxPending) throw new ApiException(HttpStatus.TOO_MANY_REQUESTS,"Wait for your previous submissions to finish before submitting again");
         String key="submissions/"+UUID.randomUUID()+".zip";
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override public void afterCompletion(int status) {

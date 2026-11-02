@@ -126,6 +126,19 @@ class SubmissionIntegrationTest {
         } finally { pool.shutdownNow(); }
         assertThat(jdbc.queryForObject("SELECT attempt_number FROM submissions",Integer.class)).isEqualTo(1);
     }
+    @Test void pendingQuotaBoundsQueueFloodingAndTerminalResultsFreeSlots() throws Exception {
+        jdbc.update("UPDATE assignments SET max_attempts=10");
+        accepted(upload(student,archive));
+        accepted(upload(student,archive));
+        accepted(upload(student,archive));
+        assertThat(upload(student,archive).getStatusCode().value()).isEqualTo(429);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM submissions",Integer.class)).isEqualTo(3);
+        long id=jdbc.queryForObject("SELECT min(id) FROM submissions",Long.class);
+        assertThat(submissions.transition(id,SubmissionStatus.QUEUED,SubmissionStatus.RUNNING)).isTrue();
+        assertThat(submissions.transition(id,SubmissionStatus.RUNNING,SubmissionStatus.GRADED)).isTrue();
+        accepted(upload(student,archive));
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM submissions",Integer.class)).isEqualTo(4);
+    }
     @Test void storageFailureRollsBackSubmissionAndOutbox() {
         doThrow(new com.digitalgrader.common.ApiException(HttpStatus.SERVICE_UNAVAILABLE,"Submission storage is unavailable")).when(storage).upload(anyString(),any());
         assertThat(upload(student,archive).getStatusCode().value()).isEqualTo(503);

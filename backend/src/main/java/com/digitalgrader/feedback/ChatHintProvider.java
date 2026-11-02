@@ -30,8 +30,8 @@ public class ChatHintProvider implements HintProvider {
         if (enabled && (!("https".equals(url.getScheme()) || "http".equals(url.getScheme()) && local) || url.getHost()==null || url.getUserInfo()!=null || url.getQuery()!=null || url.getFragment()!=null || model.isBlank() || model.length()>100))
             throw new IllegalArgumentException("Configure a model and HTTPS provider URL or a local HTTP endpoint");
         endpoint=URI.create(base.replaceAll("/+$","")+"/chat/completions");
-        http=new OkHttpClient.Builder().connectTimeout(5,TimeUnit.SECONDS).readTimeout(25,TimeUnit.SECONDS)
-                .writeTimeout(5,TimeUnit.SECONDS).callTimeout(30,TimeUnit.SECONDS).followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).build();
+        http=new OkHttpClient.Builder().connectTimeout(5,TimeUnit.SECONDS).readTimeout(60,TimeUnit.SECONDS)
+                .writeTimeout(5,TimeUnit.SECONDS).callTimeout(70,TimeUnit.SECONDS).followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).build();
     }
     @Override public Reply generate(String context) {
         if (!enabled) throw unavailable();

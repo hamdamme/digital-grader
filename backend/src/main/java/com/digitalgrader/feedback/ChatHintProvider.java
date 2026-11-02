@@ -30,14 +30,24 @@ public class ChatHintProvider implements HintProvider {
         if (enabled && (!("https".equals(url.getScheme()) || "http".equals(url.getScheme()) && local) || url.getHost()==null || url.getUserInfo()!=null || url.getQuery()!=null || url.getFragment()!=null || model.isBlank() || model.length()>100))
             throw new IllegalArgumentException("Configure a model and HTTPS provider URL or a local HTTP endpoint");
         endpoint=URI.create(base.replaceAll("/+$","")+"/chat/completions");
-        http=new OkHttpClient.Builder().connectTimeout(5,TimeUnit.SECONDS).readTimeout(25,TimeUnit.SECONDS)
-                .writeTimeout(5,TimeUnit.SECONDS).callTimeout(30,TimeUnit.SECONDS).followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).build();
+        http=new OkHttpClient.Builder().connectTimeout(5,TimeUnit.SECONDS).readTimeout(60,TimeUnit.SECONDS)
+                .writeTimeout(5,TimeUnit.SECONDS).callTimeout(70,TimeUnit.SECONDS).followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false).build();
     }
     @Override public Reply generate(String context) {
         if (!enabled) throw unavailable();
         if (context==null || context.length()>16000) throw unavailable();
+        for (int attempt=0; attempt<2; attempt++) {
+            try {
+                return call(context);
+            } catch (Exception ignored) {
+                // A single unusable reply is common with reasoning models; one fresh attempt usually settles it.
+            }
+        }
+        throw unavailable();
+    }
+    private Reply call(String context) {
         try {
-            var payload=Map.of("model",model,"stream",false,tokenField,400,
+            var payload=Map.of("model",model,"stream",false,tokenField,800,
                     "messages",List.of(Map.of("role","system","content",INSTRUCTIONS),Map.of("role","user","content",context)));
             var builder=new Request.Builder().url(endpoint.toString()).post(RequestBody.create(json.writeValueAsBytes(payload),MediaType.get("application/json")));
             if (!key.isBlank()) builder.header("Authorization","Bearer "+key);

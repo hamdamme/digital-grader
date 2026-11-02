@@ -2,6 +2,13 @@
 # Serves the built SPA from /var/www/grader and proxies the API to the backend.
 # TLS certificates are issued and renewed automatically for the managed domain.
 grader.hamdam.me {
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+	}
 	root * /var/www/grader
 	handle /api/* {
 		reverse_proxy 127.0.0.1:8080

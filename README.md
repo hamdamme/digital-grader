@@ -44,6 +44,10 @@ The health endpoint returns `{"status":"UP"}` only when PostgreSQL responds. API
 
 Public registration creates student accounts only. To provision the first administrator, set `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_NAME` and `BOOTSTRAP_ADMIN_PASSWORD` in `.env` and start the backend once; remove those values after the first successful startup. Administrators then create instructor accounts through the API.
 
+### Production deployment
+
+`docs/production.md` describes the single-host pilot layout: Caddy serving the built frontend and proxying the API, a systemd backend service, loopback-only data services, and the environment settings that matter for email, CORS, and the optional hint provider.
+
 ### Configuration
 
 `.env.example` lists the main application settings with notes. Notable groups: database (`DB_*`), broker (`RABBIT_*`), storage (`MINIO_*`), token signing and lifetimes (`JWT_*`), per-IP auth throttling (`RATE_LIMIT_*`), transactional mail (`SMTP_*`, `APP_BASE_URL`), sandbox limits (`SANDBOX_*`) and the optional hint provider (`AI_*`, disabled by default). Missing database settings or a short `JWT_SECRET` fail startup before a connection pool is created.

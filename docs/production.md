@@ -31,6 +31,28 @@ configure the optional hint provider. The `openai` provider accepts any
 OpenAI-compatible endpoint, including local models. Hints stay disabled
 until a provider is configured.
 
+## Service hardening
+
+The systemd unit runs the jar as an unprivileged user with the environment
+file readable only by its owner (mode 0600) and `Restart=always` for
+availability. Sandboxing directives on top of that baseline:
+
+```
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+```
+
+`ProtectHome` stays off because the working directory lives under the service
+user's home. The edge config in `infra/caddy/Caddyfile` strips the server
+banner and sends HSTS, `X-Content-Type-Options`, `Referrer-Policy`, and
+`X-Frame-Options` on every response.
+
 ## Deploying a release
 
 Build the backend jar with `mvn -B -ntp -f backend/pom.xml verify`, build the

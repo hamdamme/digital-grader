@@ -14,13 +14,15 @@ Use Java 17, Maven 3.9 and Spring Boot 3.5.16. Typed JDBC repositories and Flywa
 
 PostgreSQL stores users, cohorts, assignments, submission state and grading results. Loopback service ports keep local infrastructure separate from other projects. Generate development credentials into an ignored `.env`; do not ship usable default credentials.
 
-The local MinIO image is built from pinned official source with a verified archive checksum. It retains its upstream license. Production storage selection and dependency support review remain release work.
+The local MinIO image is built from pinned official source with a verified archive checksum. It retains its upstream license.
+
+Production storage stays on the self-hosted MinIO container: pilot object volume is small, the published port stays bound to loopback, and there is no per-request egress cost. All object access already goes through the `StorageService` interface with random keys and short-lived authorized URLs, so an S3-compatible provider is a drop-in replacement when a cohort outgrows single-host disk or needs cross-host replication. Routine dependency support review happens together with scheduled upgrades.
 
 ## Authentication and permissions
 
 Public registration creates students only. Administrators provision instructors, and initial administrator creation requires explicit configuration. Passwords use BCrypt cost 10 with at least 12 characters and a maximum of 72 UTF-8 bytes.
 
-Access tokens use HS256 and authenticated requests recheck the stored user and role. Refresh tokens are opaque random values stored as SHA-256 hashes; rotation consumes and replaces a token in one transaction. Logout revokes the supplied refresh token, not existing access tokens or other devices. CORS accepts explicit origins. Account recovery, abuse protection and email verification remain release work.
+Access tokens use HS256 and authenticated requests recheck the stored user and role. Refresh tokens are opaque random values stored as SHA-256 hashes; rotation consumes and replaces a token in one transaction. Logout revokes the supplied refresh token, not existing access tokens or other devices. CORS accepts explicit origins. Email verification gates first sign-in, and account recovery uses single-use emailed tokens that revoke outstanding sessions on use. Abuse protection combines per-IP throttling on credential endpoints, upload size caps, ZIP bomb checks, and a per-student cap on pending submissions.
 
 ## Submission intake
 

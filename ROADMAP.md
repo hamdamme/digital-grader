@@ -11,7 +11,7 @@ Phase status for Digital Grader. Detailed reasoning lives in [DECISIONS](DECISIO
 | 5. Security feedback | Offline vulnerability scanning, stored findings, scan status tracking | Done; verified against a live NVD snapshot |
 | 6. AI hints | Configurable provider, bounded evidence, cached hints, output limits | Done; provider proven on the live deployment |
 | 7. Connected workspace | Frontend API integration, uploads, results, instructor review history | Done; release acceptance verified on the live deployment |
-| 8. Release readiness | Account recovery, email verification, abuse protection, production storage selection, deployment hardening, teacher-controlled test harness | In progress: email verification, account recovery, and the teacher-controlled harness are implemented and merged; live end-to-end pass for account recovery pending. Remaining: per-student submission quotas, production storage selection, deployment hardening review |
+| 8. Release readiness | Account recovery, email verification, abuse protection, production storage selection, deployment hardening, teacher-controlled test harness | Done: all items implemented and verified; a live end-to-end pass of account recovery on the deployed system is the only outstanding verification, scheduled with the pilot |
 
 ## Acceptance notes
 

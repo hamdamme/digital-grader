@@ -22,7 +22,7 @@ Production storage stays on the self-hosted MinIO container: pilot object volume
 
 Public registration creates students only. Administrators provision instructors, and initial administrator creation requires explicit configuration. Passwords use BCrypt cost 10 with at least 12 characters and a maximum of 72 UTF-8 bytes.
 
-Access tokens use HS256 and authenticated requests recheck the stored user and role. Refresh tokens are opaque random values stored as SHA-256 hashes; rotation consumes and replaces a token in one transaction. Logout revokes the supplied refresh token, not existing access tokens or other devices. CORS accepts explicit origins. Account recovery, abuse protection and email verification remain release work.
+Access tokens use HS256 and authenticated requests recheck the stored user and role. Refresh tokens are opaque random values stored as SHA-256 hashes; rotation consumes and replaces a token in one transaction. Logout revokes the supplied refresh token, not existing access tokens or other devices. CORS accepts explicit origins. Email verification gates first sign-in, and account recovery uses single-use emailed tokens that revoke outstanding sessions on use. Abuse protection combines per-IP throttling on credential endpoints, upload size caps, ZIP bomb checks, and a per-student cap on pending submissions.
 
 ## Submission intake
 

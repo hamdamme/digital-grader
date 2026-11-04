@@ -62,7 +62,7 @@ export function Layout() {
         </nav>
         <div className="cohort">
           <span className="workspace-label">YOUR COHORT</span>
-          <strong>SDET–Batch 16</strong>
+          <strong>Java test automation</strong>
           <span>Oct 2026 – Mar 2027</span>
           <div className="cohort-track">
             <span />

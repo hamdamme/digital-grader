@@ -13,7 +13,7 @@ export function StudioPage() {
     <>
       <div className="studio-page-heading">
         <div>
-          <p className="studio-kicker">SDET · BATCH 16</p>
+          <p className="studio-kicker">JAVA TEST AUTOMATION</p>
           <h1>Cohort overview</h1>
           <p>
             Review submissions, track results, and plan your next assignment.
@@ -23,7 +23,7 @@ export function StudioPage() {
       </div>
       <section className="course-banner" aria-label="Current course">
         <div>
-          <span className="course-code">SDET / 16</span>
+          <span className="course-code">JAVA / 2026</span>
           <h2>Java test automation</h2>
           <p>Selenium · TestNG · Cucumber · Maven</p>
           <div className="course-meta">

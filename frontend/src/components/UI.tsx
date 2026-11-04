@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 export function Heading({
-  eyebrow = "SDET–BATCH 16",
+  eyebrow = "JAVA TEST AUTOMATION",
   title,
   detail,
 }: {

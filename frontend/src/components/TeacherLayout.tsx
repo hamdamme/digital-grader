@@ -34,7 +34,7 @@ export function TeacherLayout() {
         </nav>
         <div className="studio-course-label">
           <p className="studio-nav-label">CURRENT COHORT</p>
-          <strong>SDET · Batch 16</strong>
+          <strong>Cohort 2026</strong>
           <p>Java test automation</p>
           <span className="studio-pill">Fall 2026</span>
         </div>
@@ -52,7 +52,7 @@ export function TeacherLayout() {
       <div className="studio-shell">
         <header className="studio-topbar">
           <span>
-            Mindtek <span className="slash">/</span> SDET · Batch 16
+            Digital Grader <span className="slash">/</span> Java test automation
           </span>
           <span className="demo-tag">DESIGN PREVIEW · SAMPLE DATA</span>
         </header>
@@ -60,7 +60,7 @@ export function TeacherLayout() {
           <Outlet />
         </main>
         <footer className="studio-footer">
-          <span>Digital Grader · Independent project for Mindtek</span>
+          <span>Digital Grader · Independent project</span>
           <span>Demo only · Changes reset on reload</span>
         </footer>
       </div>

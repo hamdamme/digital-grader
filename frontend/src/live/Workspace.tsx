@@ -136,7 +136,7 @@ export function Workspace({ user }: { user: User }) {
           </main>
           <footer className="studio-footer">
             <span>Digital Grader · Learning and review</span>
-            <span>Grading needs a configured worker</span>
+            <span>Sandboxed grading under gVisor</span>
           </footer>
         </div>
       </div>

@@ -2,20 +2,33 @@
 
 Automated grading and security feedback for students learning Java test automation.
 
-## Status
+Digital Grader brings assignment management, isolated code execution, and result review into one workspace. Teachers manage cohorts and assignments, attach test packages, and review results. Students submit Java projects and receive test results, rubric scores, security findings, and optional AI hints.
 
-Implemented: account registration and authentication, cohort and assignment management, validated ZIP submission intake, private object storage with queue dispatch, a sandboxed grading worker with report parsing and scoring, security scanning with optional AI hints, and a React workspace connected to the API. A separate demo area with labeled sample data is included for design review.
+[Local setup](#local-setup) · [Verification](#verification) · [Deployment guide](docs/production.md) · [Roadmap](ROADMAP.md)
 
-Pending acceptance: a live vulnerability snapshot refresh and an evaluated hint provider. Real sandbox execution under gVisor on Linux is verified (see [ROADMAP](ROADMAP.md) acceptance notes). See [ROADMAP](ROADMAP.md) for phase status and [DECISIONS](DECISIONS.md) for the reasoning behind the main design choices.
+## Capabilities
 
-## Requirements
+| Area | Features |
+|---|---|
+| Accounts | Registration, email verification, login, password recovery, and role permissions |
+| Classroom | Cohorts, enrollment, assignments, rubrics, and teacher test packages |
+| Submissions | Validated ZIP uploads, private object storage, and queued grading |
+| Grading | Isolated execution with gVisor, test reports, coverage, and rubric scores |
+| Feedback | Offline security scans, optional AI hints, and instructor review history |
+| Workspace | React interface connected to the API, plus a separate demo with labeled sample data |
+
+The [roadmap](ROADMAP.md) records completion of all eight planned phases and dated deployment acceptance checks. Those checks cover grading, security scans, hints, email verification, and account recovery. See [grading integrity](#grading-integrity) for the limits of automated assessment and [technical decisions](DECISIONS.md) for architecture choices.
+
+## Local setup
+
+### Requirements
 
 - Docker with Compose v2
 - Java 17 and Maven 3.9
 - Python 3 (environment generation and sandbox helpers only)
 - Node.js 24 LTS (minimum 22.12) for the frontend
 
-## Backend and local services
+### Backend and local services
 
 From the repository root:
 
@@ -36,7 +49,7 @@ docker compose up -d --build --wait --wait-timeout 180
 | MinIO S3 | http://127.0.0.1:19000 | Private submission and report storage |
 | MinIO console | http://127.0.0.1:19001 | Object administration |
 
-All published ports bind to loopback only. Console credentials come from `.env`. The first MinIO build can take several minutes; the local image is built from pinned official source (see `infra/minio/Dockerfile`) and is a development convenience, not a production storage choice.
+All published ports bind to loopback only. Console credentials come from `.env`. The first MinIO build can take several minutes; the local image is built from pinned official source (see `infra/minio/Dockerfile`) and supports local development. The pilot also uses MinIO; deployment and storage choices are documented in [technical decisions](DECISIONS.md).
 
 The health endpoint returns `{"status":"UP"}` only when PostgreSQL responds. API documentation is at http://127.0.0.1:8080/swagger-ui/index.html.
 
@@ -46,7 +59,15 @@ Public registration creates student accounts only. To provision the first admini
 
 ### Production deployment
 
-`docs/production.md` describes the single-host pilot layout: Caddy serving the built frontend and proxying the API, a systemd backend service, loopback-only data services, and the environment settings that matter for email, CORS, and the optional hint provider.
+The [deployment guide](docs/production.md) describes the single-host pilot layout: Caddy serving the built frontend and proxying the API, a systemd backend service, loopback-only data services, and the environment settings that matter for email, CORS, and the optional hint provider.
+
+### Session revocation
+
+Access tokens identify the stored refresh session by its hash. Each authenticated
+request checks that the session belongs to the user and has not expired or been
+revoked. Logout invalidates both credentials for that session; other sessions
+remain active. Refresh rotates both credentials and invalidates the previous pair.
+Requests already authorized before logout may finish.
 
 ### Configuration
 
@@ -63,11 +84,26 @@ docker build -f sandbox/Dockerfile.student -t digital-grader-student:local sandb
 ./scripts/worker.sh                    # worker, terminal two
 ```
 
-Sandbox behavior: no network, read-only root filesystem, bounded writable tmpfs, dropped capabilities, no-new-privileges, and PID, CPU, memory and runtime limits. Only the submitted ZIP is mounted, read-only. Maven runs offline against dependencies cached in the image. The API never executes student code.
+Sandbox behavior: no network, read-only root filesystem, bounded writable tmpfs, dropped capabilities, no-new-privileges, and PID, CPU, memory and runtime limits. The submitted ZIP and any teacher test package are mounted read-only. Maven runs offline against dependencies cached in the image. The API never executes student code.
 
 Optional environment settings: `SANDBOX_IMAGE` (default `digital-grader-student:local`), `SANDBOX_TIMEOUT_SECONDS` (default 600), `SANDBOX_MEMORY_MB` (default 1536), `SANDBOX_CPU_LIMIT` (default 1).
 
-gVisor setup: https://gvisor.dev/docs/user_guide/quick_start/docker/
+[gVisor Docker setup](https://gvisor.dev/docs/user_guide/quick_start/docker/)
+
+### Scoring policy
+
+The coverage threshold is the minimum measured line coverage required to earn
+coverage credit. Below it, the coverage component is zero. At or above it, the
+measured percentage is multiplied by the coverage weight. Test and quality
+components are unchanged. Raw coverage remains visible in the result; the
+rubric breakdown records credited coverage. A threshold of zero preserves
+proportional credit. Existing stored grades are not recalculated.
+
+### Grading integrity
+
+When a teacher test package is attached, the runner replaces the submitted test sources with that package. Without one, grading uses the student's tests. The sandbox isolates execution from the host, but submitted Maven configuration and code can still influence execution and files used for scoring.
+
+Use results for supervised feedback. Teacher tests alone do not prove resistance to forged reports or skipped tests. Consequential assessment requires further validation of evidence collection and attempts to manipulate grading.
 
 ## Security worker and hints
 
@@ -147,46 +183,7 @@ Backend integration tests run against disposable PostgreSQL, MinIO and RabbitMQ 
 
 GitHub Actions check backend, frontend and browser workflows on changes. A successful local run does not establish remote CI success.
 
-## Project structure
-
-| Path | Contents |
-|---|---|
-| `backend/` | Spring Boot API, worker entry points, migrations and tests |
-| `frontend/` | React pages, shared components and demonstration fixtures |
-| `sandbox/` | Grading and security images, bounded runners, sample project |
-| `infra/minio/` | Pinned MinIO source build |
-| `scripts/` | Environment setup, launch and verification scripts |
-| `.github/workflows/` | Backend, frontend and browser checks |
-
-## Documentation
-
-- [Roadmap and phase status](ROADMAP.md)
-- [Technical decisions](DECISIONS.md)
-- [Third-party licenses](THIRD_PARTY.md)
-
-## Development
-
-Use focused branches and commits that describe concrete changes. Run checks relevant to each change and record unresolved acceptance work. Keep credentials, dependencies, generated output and student submissions out of Git.
-
-Public repository: [hamdamme/digital-grader](https://github.com/hamdamme/digital-grader).
-
-## License
-
-MIT — see [LICENSE](LICENSE). Dependencies retain their own licenses; see [third party notices](THIRD_PARTY.md).
-
-
-## Session revocation
-
-Access tokens identify the stored refresh session by its hash. Each authenticated
-request checks that the session belongs to the user and has not expired or been
-revoked. Logout invalidates both credentials for that session; other sessions
-remain active. Refresh rotates both credentials and invalidates the previous pair.
-Requests already authorized before logout may finish.
-
-Deploying this change requires existing users to sign in again because earlier
-access tokens do not carry a session identifier. No database migration is needed.
-
-## Complete grading acceptance
+### Complete grading acceptance
 
 On a Linux Docker host with gVisor configured, build the backend, local MinIO
 image, and student sandbox image using the commands above. Install frontend
@@ -208,26 +205,30 @@ The default browser check uses stored report fixtures to test interface behavior
 Its success does not establish that real grading acceptance passed. The complete
 mode covers grading and review; security scanning remains a separate acceptance check.
 
+## Project structure
 
-## Scoring policy
+| Path | Contents |
+|---|---|
+| `backend/` | Spring Boot API, worker entry points, migrations and tests |
+| `frontend/` | React pages, shared components and demonstration fixtures |
+| `sandbox/` | Grading and security images, bounded runners, sample project |
+| `infra/minio/` | Pinned MinIO source build |
+| `scripts/` | Environment setup, launch and verification scripts |
+| `.github/workflows/` | Backend, frontend and browser checks |
 
-The coverage threshold is the minimum measured line coverage required to earn
-coverage credit. Below it, the coverage component is zero. At or above it, the
-measured percentage is multiplied by the coverage weight. Test and quality
-components are unchanged. Raw coverage remains visible in the result; the
-rubric breakdown records credited coverage. A threshold of zero preserves
-proportional credit. Existing stored grades are not recalculated.
+## Documentation
 
-## Grade integrity limits
+- [Roadmap and phase status](ROADMAP.md)
+- [Technical decisions](DECISIONS.md)
+- [Deployment guide](docs/production.md)
+- [Third-party licenses](THIRD_PARTY.md)
 
-The sandbox isolates execution from the host. It does not establish that reports
-written by submitted code are authentic. The submitted Maven configuration and
-code can influence test execution and write files used for scoring. Current
-scores are suitable for supervised feedback, not authoritative assessment of
-adversarial submissions.
+## Development
 
-Before using scores for consequential assessment, separate the trusted grading
-harness and evidence collection from submitted code, define which tests students
-may supply, and validate attempts to forge reports or skip required tests. This
-work remains outstanding. The real grading acceptance sample verifies the normal
-workflow and does not establish resistance to report fabrication.
+Use focused branches and commits that describe concrete changes. Run checks relevant to each change and record unresolved acceptance work. Keep credentials, dependencies, generated output and student submissions out of Git.
+
+Public repository: [hamdamme/digital-grader](https://github.com/hamdamme/digital-grader).
+
+## License
+
+MIT — see [LICENSE](LICENSE). Dependencies retain their own licenses; see [third party notices](THIRD_PARTY.md).
